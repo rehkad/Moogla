@@ -4,6 +4,8 @@ from types import ModuleType
 from typing import Callable, List, Optional
 import inspect
 
+from . import plugins_config
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,7 +33,9 @@ class Plugin:
 
 
 def load_plugins(names: Optional[List[str]]) -> List[Plugin]:
-    """Import and initialize plugins from module names."""
+    """Import and initialize plugins from module names or configured store."""
+    if not names:
+        names = plugins_config.get_plugins()
     plugins: List[Plugin] = []
     for name in names or []:
         try:

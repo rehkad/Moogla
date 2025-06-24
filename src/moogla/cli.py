@@ -8,8 +8,36 @@ import httpx
 import typer
 
 from .server import start_server
+from . import plugins_config
 
 app = typer.Typer(help="Moogla command line interface")
+plugin_app = typer.Typer(help="Manage plugins")
+app.add_typer(plugin_app, name="plugin")
+
+
+@plugin_app.command("add")
+def plugin_add(name: str) -> None:
+    """Add a plugin to the persistent store."""
+    plugins_config.add_plugin(name)
+    typer.echo(f"Added {name}")
+
+
+@plugin_app.command("remove")
+def plugin_remove(name: str) -> None:
+    """Remove a plugin from the store."""
+    plugins_config.remove_plugin(name)
+    typer.echo(f"Removed {name}")
+
+
+@plugin_app.command("list")
+def plugin_list() -> None:
+    """List configured plugins."""
+    names = plugins_config.get_plugins()
+    if not names:
+        typer.echo("No plugins configured")
+    else:
+        for n in names:
+            typer.echo(n)
 
 
 @app.command()
