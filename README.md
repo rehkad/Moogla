@@ -67,6 +67,14 @@ curl -X POST http://localhost:11434/v1/chat/completions \
   -d '{"messages": [{"role": "user", "content": "hello"}]}'
 ```
 
+For a more interactive experience start the built-in REPL:
+
+```bash
+moogla chat
+```
+
+Add `--stream` to display tokens as they are generated.
+
 ### Plugin API
 
 Plugins are regular Python modules that expose optional `preprocess` and

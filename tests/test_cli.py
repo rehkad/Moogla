@@ -100,3 +100,58 @@ def test_pull_http_error(monkeypatch, tmp_path):
     assert result.exit_code == 1
     assert not (tmp_path / "x.bin").exists()
     assert "Failed to download" in result.output
+
+
+def test_chat_command(monkeypatch):
+    import httpx
+
+    def fake_post(url, json=None, headers=None):
+        assert url == "http://test/v1/chat/completions"
+        assert json["messages"][0]["content"] == "hi"
+        class Resp:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"choices": [{"message": {"content": "IH"}}]}
+
+        return Resp()
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+
+    result = runner.invoke(app, ["chat", "--server-url", "http://test"], input="hi\n")
+    assert result.exit_code == 0
+    assert "IH" in result.output
+
+
+def test_chat_stream(monkeypatch):
+    import contextlib
+    import httpx
+
+    def fake_stream(method, url, json=None, headers=None):
+        assert method == "POST"
+        assert url == "http://test/v1/chat/completions"
+        assert json["stream"] is True
+        assert json["messages"][0]["content"] == "hi"
+
+        @contextlib.contextmanager
+        def cm():
+            class Resp:
+                def raise_for_status(self):
+                    pass
+
+                def iter_lines(self):
+                    return iter([
+                        '{"choices":[{"delta":{"content":"I"}}]}',
+                        '{"choices":[{"delta":{"content":"H"}}]}',
+                    ])
+
+            yield Resp()
+
+        return cm()
+
+    monkeypatch.setattr(httpx, "stream", fake_stream)
+
+    result = runner.invoke(app, ["chat", "--server-url", "http://test", "--stream"], input="hi\n")
+    assert result.exit_code == 0
+    assert "IH" in result.output

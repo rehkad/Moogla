@@ -2,6 +2,7 @@ from typing import List
 import os
 from pathlib import Path
 from urllib.parse import urlparse
+import json
 
 import httpx
 
@@ -39,6 +40,63 @@ def plugin_list() -> None:
     else:
         for n in names:
             typer.echo(n)
+
+
+@app.command()
+def chat(
+    server_url: str = typer.Option(
+        "http://localhost:11434",
+        "--server-url",
+        "-u",
+        help="Base URL of the running Moogla server",
+    ),
+    api_key: str = typer.Option(
+        None,
+        "--api-key",
+        help="API key for the server",
+        envvar="MOOGLA_API_KEY",
+        show_default=False,
+    ),
+    stream: bool = typer.Option(False, "--stream", "-s", help="Stream responses"),
+) -> None:
+    """Open a simple REPL for chatting with the server."""
+
+    endpoint = server_url.rstrip("/") + "/v1/chat/completions"
+    headers = {"X-API-Key": api_key} if api_key else {}
+
+    typer.echo("Press Ctrl-D to exit.")
+    while True:
+        try:
+            prompt = input("> ")
+        except (EOFError, KeyboardInterrupt):
+            typer.echo()
+            break
+
+        if not prompt.strip():
+            continue
+
+        payload = {"messages": [{"role": "user", "content": prompt}]}
+
+        try:
+            if stream:
+                payload["stream"] = True
+                with httpx.stream("POST", endpoint, json=payload, headers=headers) as resp:
+                    resp.raise_for_status()
+                    for line in resp.iter_lines():
+                        if not line:
+                            continue
+                        data = json.loads(line)
+                        delta = data["choices"][0].get("delta", {}).get("content")
+                        if delta:
+                            typer.echo(delta, nl=False)
+                    typer.echo()
+            else:
+                resp = httpx.post(endpoint, json=payload, headers=headers)
+                resp.raise_for_status()
+                data = resp.json()
+                typer.echo(data["choices"][0]["message"]["content"])
+        except Exception as exc:
+            typer.echo(f"Error: {exc}", err=True)
 
 
 @app.command()
