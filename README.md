@@ -54,6 +54,16 @@ curl -X POST http://localhost:11434/v1/chat/completions \
   -d '{"messages": [{"role": "user", "content": "hello"}]}'
 ```
 
+### Web Interface
+
+To try the browser UI run the server and open the bundled web app:
+
+```bash
+moogla serve
+```
+
+Then navigate to [http://localhost:11434/app](http://localhost:11434/app).
+
 ## Contributing Guidelines
 
 - Use the `src` layout for all packages and modules.
