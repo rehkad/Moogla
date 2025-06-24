@@ -14,13 +14,25 @@ def serve(
         None, '--plugin', '-p', help='Plugin module to load', show_default=False
     ),
 ):
-    """Start the Moogla HTTP server."""
+    """Start the Moogla HTTP server.
+
+    Parameters
+    ----------
+    host: IP or hostname to bind.
+    port: TCP port to listen on.
+    plugin: Optional plugin modules to initialize.
+    """
     start_server(host=host, port=port, plugin_names=plugin)
 
 
 @app.command()
 def pull(model: str):
-    """Pull a model into the local cache (stub)."""
+    """Download a model into the local cache (stub).
+
+    Parameters
+    ----------
+    model: Identifier of the model to fetch.
+    """
     typer.echo(f"Pulling {model} ... done.")
 
 if __name__ == "__main__":
