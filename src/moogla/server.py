@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from typing import List, Optional
 from contextlib import asynccontextmanager
+import time
 
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -21,6 +22,8 @@ from .auth import User
 
 from .executor import LLMExecutor
 from .plugins import load_plugins
+from .logging_config import configure_logging
+from .metrics import setup_metrics, completions_total, plugin_duration
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +37,10 @@ def create_app(
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
     db_url: Optional[str] = None,
+    log_level: Optional[str] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
+    configure_logging(log_level)
     if db_url:
         os.environ["MOOGLA_PLUGIN_DB"] = db_url.replace("sqlite:///", "")
     plugins = load_plugins(plugin_names)
@@ -97,6 +102,7 @@ def create_app(
         await FastAPILimiter.close()
 
     app = FastAPI(title="Moogla API", dependencies=dependencies, lifespan=lifespan)
+    setup_metrics(app)
     app.state.db_url = db_url
     app.state.engine = engine
     app.state.pwd_context = pwd_context
@@ -160,17 +166,22 @@ def create_app(
         """Run text through plugin hooks and return the mock LLM output."""
         for plugin in plugins:
             try:
+                start = time.perf_counter()
                 text = await plugin.run_preprocess(text)
+                plugin_duration.labels(plugin.module.__name__, "preprocess").observe(time.perf_counter() - start)
             except Exception as exc:
                 logger.exception("Preprocess plugin failed: %s", exc)
                 raise HTTPException(status_code=500, detail="Plugin error") from exc
         response = await executor.acomplete(text)
         for plugin in plugins:
             try:
+                start = time.perf_counter()
                 response = await plugin.run_postprocess(response)
+                plugin_duration.labels(plugin.module.__name__, "postprocess").observe(time.perf_counter() - start)
             except Exception as exc:
                 logger.exception("Postprocess plugin failed: %s", exc)
                 raise HTTPException(status_code=500, detail="Plugin error") from exc
+        completions_total.inc()
         return response
 
     route_args = {"dependencies": [auth_dependency]} if auth_dependency else {}
@@ -220,6 +231,7 @@ def start_server(
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
     db_url: Optional[str] = None,
+    log_level: Optional[str] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -231,5 +243,9 @@ def start_server(
         rate_limit=rate_limit,
         redis_url=redis_url,
         db_url=db_url,
+        log_level=log_level,
     )
-    uvicorn.run(app, host=host, port=port)
+    run_kwargs = {}
+    if log_level:
+        run_kwargs["log_level"] = log_level.lower()
+    uvicorn.run(app, host=host, port=port, **run_kwargs)

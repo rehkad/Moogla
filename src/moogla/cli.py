@@ -89,6 +89,13 @@ def serve(
         envvar="MOOGLA_DB_URL",
         show_default=False,
     ),
+    log_level: str = typer.Option(
+        None,
+        "--log-level",
+        help="Logging level",
+        envvar="MOOGLA_LOG_LEVEL",
+        show_default=False,
+    ),
 ):
     """Start the Moogla HTTP server.
 
@@ -109,6 +116,7 @@ def serve(
         rate_limit=rate_limit,
         redis_url=redis_url,
         db_url=db_url,
+        log_level=log_level,
     )
 
 
