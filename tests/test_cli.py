@@ -67,3 +67,31 @@ def test_pull_downloads_to_custom_dir():
             result = runner.invoke(app, ["pull", str(src), "--dir", target_dir])
             assert result.exit_code == 0
             assert (Path(target_dir) / "dummy.txt").exists()
+
+
+def test_pull_http_error(monkeypatch, tmp_path):
+    import contextlib
+    import httpx
+
+    def fake_stream(method, url, *a, **kw):
+        @contextlib.contextmanager
+        def cm():
+            class FakeResp:
+                headers = {}
+
+                def raise_for_status(self):
+                    raise httpx.HTTPStatusError("boom", request=None, response=None)
+
+                def iter_bytes(self):
+                    return iter([])
+
+            yield FakeResp()
+
+        return cm()
+
+    monkeypatch.setattr(httpx, "stream", fake_stream)
+
+    result = runner.invoke(app, ["pull", "http://example.com/x.bin", "--dir", str(tmp_path)])
+    assert result.exit_code == 1
+    assert not (tmp_path / "x.bin").exists()
+    assert "Failed to download" in result.output

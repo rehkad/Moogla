@@ -124,16 +124,22 @@ def pull(
 
     if parsed.scheme in {"http", "https", "file"}:
         url = model
-        with httpx.stream("GET", url) as resp:
-            resp.raise_for_status()
-            total = int(resp.headers.get("content-length", 0))
-            with open(dest, "wb") as f, typer.progressbar(
-                length=total or None, label="Downloading"
-            ) as bar:
-                for chunk in resp.iter_bytes():
-                    f.write(chunk)
-                    if total:
-                        bar.update(len(chunk))
+        try:
+            with httpx.stream("GET", url) as resp:
+                resp.raise_for_status()
+                total = int(resp.headers.get("content-length", 0))
+                with open(dest, "wb") as f, typer.progressbar(
+                    length=total or None, label="Downloading"
+                ) as bar:
+                    for chunk in resp.iter_bytes():
+                        f.write(chunk)
+                        if total:
+                            bar.update(len(chunk))
+        except Exception as e:
+            if dest.exists():
+                dest.unlink()
+            typer.echo(f"Failed to download {url}: {e}", err=True)
+            raise typer.Exit(code=1)
     elif Path(model).is_file():
         size = os.path.getsize(model)
         with open(model, "rb") as src, open(dest, "wb") as dst, typer.progressbar(
