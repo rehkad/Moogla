@@ -1,55 +1,54 @@
 import os
-import json
-import sqlite3
 from pathlib import Path
-from typing import List
+from typing import List, Optional
+
+from sqlalchemy.engine import Engine
+from sqlmodel import Field, SQLModel, Session, create_engine, select
 
 
-def _get_path() -> Path:
-    env = os.getenv("MOOGLA_PLUGIN_DB")
-    return Path(env) if env else Path.home() / ".cache" / "moogla" / "plugins.db"
+class PluginConfig(SQLModel, table=True):
+    """Persistent configuration for loaded plugins."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True, sa_column_kwargs={"unique": True})
 
 
-def _ensure_db(path: Path) -> sqlite3.Connection:
+def _default_db_url() -> str:
+    path = Path.home() / ".cache" / "moogla" / "plugins.db"
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT)"
-    )
-    return conn
+    return f"sqlite:///{path}"
 
 
-def _set_plugins(names: List[str], path: Path) -> None:
-    conn = _ensure_db(path)
-    try:
-        conn.execute(
-            "INSERT OR REPLACE INTO config(key, value) VALUES('plugins', ?)",
-            (json.dumps(names),),
-        )
-        conn.commit()
-    finally:
-        conn.close()
+def _resolve_engine(engine: Optional[Engine] = None) -> Engine:
+    if engine is not None:
+        SQLModel.metadata.create_all(engine)
+        return engine
+    db_url = os.getenv("MOOGLA_DB_URL")
+    engine = create_engine(db_url or _default_db_url())
+    SQLModel.metadata.create_all(engine)
+    return engine
 
 
-def get_plugins() -> List[str]:
-    path = _get_path()
-    conn = _ensure_db(path)
-    try:
-        row = conn.execute("SELECT value FROM config WHERE key='plugins'").fetchone()
-        return json.loads(row[0]) if row else []
-    finally:
-        conn.close()
+def get_plugins(engine: Optional[Engine] = None) -> List[str]:
+    eng = _resolve_engine(engine)
+    with Session(eng) as session:
+        rows = session.exec(select(PluginConfig).order_by(PluginConfig.id)).all()
+        return [row.name for row in rows]
 
 
-def add_plugin(name: str) -> None:
-    names = get_plugins()
-    if name not in names:
-        names.append(name)
-        _set_plugins(names, _get_path())
+def add_plugin(name: str, engine: Optional[Engine] = None) -> None:
+    eng = _resolve_engine(engine)
+    with Session(eng) as session:
+        existing = session.exec(select(PluginConfig).where(PluginConfig.name == name)).first()
+        if not existing:
+            session.add(PluginConfig(name=name))
+            session.commit()
 
 
-def remove_plugin(name: str) -> None:
-    names = get_plugins()
-    if name in names:
-        names.remove(name)
-        _set_plugins(names, _get_path())
+def remove_plugin(name: str, engine: Optional[Engine] = None) -> None:
+    eng = _resolve_engine(engine)
+    with Session(eng) as session:
+        entry = session.exec(select(PluginConfig).where(PluginConfig.name == name)).first()
+        if entry:
+            session.delete(entry)
+            session.commit()

@@ -21,6 +21,7 @@ from .auth import User
 
 from .executor import LLMExecutor
 from .plugins import load_plugins
+from . import plugins_config
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +37,11 @@ def create_app(
     db_url: Optional[str] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
-    if db_url:
-        os.environ["MOOGLA_PLUGIN_DB"] = db_url.replace("sqlite:///", "")
+    engine = create_engine(db_url or "sqlite:///:memory:")
+    SQLModel.metadata.create_all(engine)
+
+    if plugin_names is None:
+        plugin_names = plugins_config.get_plugins(engine)
     plugins = load_plugins(plugin_names)
 
     model = model or os.getenv("MOOGLA_MODEL", "gpt-3.5-turbo")
@@ -50,9 +54,6 @@ def create_app(
     redis_url = redis_url or os.getenv("MOOGLA_REDIS_URL", "redis://localhost:6379")
 
     executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
-
-    engine = create_engine(db_url or "sqlite:///:memory:")
-    SQLModel.metadata.create_all(engine)
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     secret_key = os.getenv("MOOGLA_JWT_SECRET", "secret")
     algorithm = "HS256"

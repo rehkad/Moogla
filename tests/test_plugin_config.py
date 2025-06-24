@@ -10,7 +10,7 @@ runner = CliRunner()
 
 def test_cli_plugin_management(tmp_path, monkeypatch):
     db = tmp_path / "plugins.db"
-    monkeypatch.setenv("MOOGLA_PLUGIN_DB", str(db))
+    monkeypatch.setenv("MOOGLA_DB_URL", f"sqlite:///{db}")
 
     result = runner.invoke(app, ["plugin", "add", "tests.dummy_plugin"])
     assert result.exit_code == 0
@@ -33,11 +33,11 @@ class DummyExecutor:
 
 def test_persisted_plugins_loaded(tmp_path, monkeypatch):
     db = tmp_path / "plugins.db"
-    monkeypatch.setenv("MOOGLA_PLUGIN_DB", str(db))
+    monkeypatch.setenv("MOOGLA_DB_URL", f"sqlite:///{db}")
     plugins_config.add_plugin("tests.dummy_plugin")
 
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
-    app_instance = server.create_app()
+    app_instance = server.create_app(db_url=f"sqlite:///{db}")
     client = TestClient(app_instance)
     resp = client.post("/v1/completions", json={"prompt": "abc"})
     assert resp.status_code == 200
