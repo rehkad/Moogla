@@ -13,10 +13,15 @@ def test_help():
     assert 'serve' in result.output
     assert 'pull' in result.output
 
-def test_pull():
-    result = runner.invoke(app, ['pull', 'test-model'])
+def test_pull(tmp_path):
+    src = tmp_path / "model.bin"
+    src.write_text("data")
+    dest_dir = tmp_path / "models"
+    result = runner.invoke(app, ["pull", str(src), "--dir", str(dest_dir)])
     assert result.exit_code == 0
-    assert 'Pulling test-model ... done.' in result.output
+    dest = dest_dir / "model.bin"
+    assert dest.exists()
+    assert dest.read_text() == "data"
 
 
 def test_serve_with_plugin(monkeypatch):

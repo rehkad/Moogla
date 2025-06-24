@@ -2,16 +2,18 @@ from typing import List, Optional
 
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
 from pathlib import Path
 from pydantic import BaseModel
 import uvicorn
-import json
+
 
 from .plugins import Plugin, load_plugins
 from .executor import LLMExecutor
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(
@@ -61,10 +63,18 @@ def create_app(
     async def apply_plugins(text: str) -> str:
         """Run text through plugin hooks and return the mock LLM output."""
         for plugin in plugins:
-            text = await plugin.run_preprocess(text)
+            try:
+                text = await plugin.run_preprocess(text)
+            except Exception as exc:
+                logger.exception("Preprocess plugin failed: %s", exc)
+                raise HTTPException(status_code=500, detail="Plugin error") from exc
         response = await executor.acomplete(text)
         for plugin in plugins:
-            response = await plugin.run_postprocess(response)
+            try:
+                response = await plugin.run_postprocess(response)
+            except Exception as exc:
+                logger.exception("Postprocess plugin failed: %s", exc)
+                raise HTTPException(status_code=500, detail="Plugin error") from exc
         return response
 
     @app.post("/v1/chat/completions")
