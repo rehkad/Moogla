@@ -13,6 +13,7 @@ def test_help():
     assert result.exit_code == 0
     assert "serve" in result.output
     assert "pull" in result.output
+    assert "--checksum" in runner.invoke(app, ["pull", "--help"]).output
 
 
 def test_serve_with_plugin(monkeypatch):
@@ -100,3 +101,43 @@ def test_pull_http_error(monkeypatch, tmp_path):
     assert result.exit_code == 1
     assert not (tmp_path / "x.bin").exists()
     assert "Failed to download" in result.output
+
+
+def test_pull_with_checksum(tmp_path):
+    import hashlib
+    src = tmp_path / "file.txt"
+    data = b"hello"
+    src.write_bytes(data)
+    checksum = hashlib.sha256(data).hexdigest()
+
+    result = runner.invoke(
+        app,
+        ["pull", str(src), "--dir", str(tmp_path), "--checksum", checksum],
+    )
+    assert result.exit_code == 0
+    assert (tmp_path / "file.txt").read_bytes() == data
+
+
+def test_pull_checksum_failure(tmp_path):
+    src = tmp_path / "bad.txt"
+    src.write_text("bad")
+
+    result = runner.invoke(
+        app,
+        ["pull", str(src), "--dir", str(tmp_path), "--checksum", "0" * 64],
+    )
+    assert result.exit_code == 1
+    assert not (tmp_path / "bad.txt").exists()
+
+
+def test_pull_resume_download(tmp_path):
+    src = tmp_path / "big.bin"
+    data = b"0123456789" * 100
+    src.write_bytes(data)
+
+    dest_part = tmp_path / "big.bin.part"
+    dest_part.write_bytes(data[:50])
+
+    result = runner.invoke(app, ["pull", str(src), "--dir", str(tmp_path)])
+    assert result.exit_code == 0
+    assert (tmp_path / "big.bin").read_bytes() == data
