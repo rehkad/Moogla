@@ -1,8 +1,8 @@
-from importlib import import_module
+import inspect
 import logging
+from importlib import import_module
 from types import ModuleType
 from typing import Callable, List, Optional
-import inspect
 
 from . import plugins_config
 
@@ -14,11 +14,15 @@ class Plugin:
 
     def __init__(self, module: ModuleType) -> None:
         self.module = module
-        self.preprocess: Optional[Callable[[str], str]] = getattr(module, "preprocess", None)
+        self.preprocess: Optional[Callable[[str], str]] = getattr(
+            module, "preprocess", None
+        )
         self.preprocess_async: Optional[Callable[[str], str]] = getattr(
             module, "preprocess_async", None
         )
-        self.postprocess: Optional[Callable[[str], str]] = getattr(module, "postprocess", None)
+        self.postprocess: Optional[Callable[[str], str]] = getattr(
+            module, "postprocess", None
+        )
         self.postprocess_async: Optional[Callable[[str], str]] = getattr(
             module, "postprocess_async", None
         )

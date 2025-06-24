@@ -2,10 +2,10 @@ from __future__ import annotations
 
 """Utilities for executing prompts against LLM providers."""
 
-from typing import Optional
-from pathlib import Path
 import asyncio
 import threading
+from pathlib import Path
+from typing import Optional
 
 import openai
 
@@ -13,7 +13,9 @@ import openai
 class LLMExecutor:
     """Simple wrapper around the OpenAI client."""
 
-    def __init__(self, model: str, api_key: Optional[str] = None, api_base: Optional[str] = None) -> None:
+    def __init__(
+        self, model: str, api_key: Optional[str] = None, api_base: Optional[str] = None
+    ) -> None:
         self.model = model
         self.client = None
         self.async_client = None
@@ -28,14 +30,18 @@ class LLMExecutor:
                 try:
                     from llama_cpp import Llama
                 except Exception as exc:  # pragma: no cover - optional dep
-                    raise RuntimeError("llama-cpp-python required for GGUF models") from exc
+                    raise RuntimeError(
+                        "llama-cpp-python required for GGUF models"
+                    ) from exc
 
                 self.llama = Llama(model_path=str(model_path))
             else:
                 try:
                     from transformers import pipeline
                 except Exception as exc:  # pragma: no cover - optional dep
-                    raise RuntimeError("transformers required for HuggingFace models") from exc
+                    raise RuntimeError(
+                        "transformers required for HuggingFace models"
+                    ) from exc
 
                 self.generator = pipeline("text-generation", model=str(model_path))
         else:
@@ -107,7 +113,6 @@ class LLMExecutor:
         if self.generator:
             try:
                 from transformers import TextIteratorStreamer
-                import torch
 
                 streamer = TextIteratorStreamer(
                     self.generator.tokenizer, skip_prompt=True, skip_special_tokens=True

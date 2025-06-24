@@ -1,7 +1,8 @@
-import os
 import json
-import pytest
+import os
+
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 
 from moogla import server
@@ -115,8 +116,10 @@ async def test_chat_completion_stream(monkeypatch):
         )
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/event-stream")
-    lines = [l for l in resp.text.splitlines() if l.strip()]
-    reply = "".join(json.loads(l)["choices"][0]["delta"]["content"] for l in lines)
+    lines = [line for line in resp.text.splitlines() if line.strip()]
+    reply = "".join(
+        json.loads(line)["choices"][0]["delta"]["content"] for line in lines
+    )
     assert reply == "olleh"
 
 
@@ -133,8 +136,10 @@ async def test_completion_stream(monkeypatch):
         )
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/event-stream")
-    lines = [l for l in resp.text.splitlines() if l.strip()]
-    reply = "".join(json.loads(l)["choices"][0]["delta"]["content"] for l in lines)
+    lines = [line for line in resp.text.splitlines() if line.strip()]
+    reply = "".join(
+        json.loads(line)["choices"][0]["delta"]["content"] for line in lines
+    )
     assert reply == "cba"
 
 

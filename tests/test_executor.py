@@ -22,14 +22,20 @@ class DummyClient:
         stream=False,
     ):
         return types.SimpleNamespace(
-            choices=[types.SimpleNamespace(message=types.SimpleNamespace(content=self.content))]
+            choices=[
+                types.SimpleNamespace(
+                    message=types.SimpleNamespace(content=self.content)
+                )
+            ]
         )
 
 
 def test_complete(monkeypatch):
     dummy = DummyClient()
     monkeypatch.setattr(openai, "OpenAI", lambda api_key=None, base_url=None: dummy)
-    monkeypatch.setattr(openai, "AsyncOpenAI", lambda api_key=None, base_url=None: dummy)
+    monkeypatch.setattr(
+        openai, "AsyncOpenAI", lambda api_key=None, base_url=None: dummy
+    )
     executor = LLMExecutor(model="gpt-3.5-turbo")
     result = executor.complete("hello")
     assert result == "hi"
@@ -61,7 +67,11 @@ async def test_astream(monkeypatch):
 
         def __iter__(self):
             for ch in self.text:
-                yield types.SimpleNamespace(choices=[types.SimpleNamespace(delta=types.SimpleNamespace(content=ch))])
+                yield types.SimpleNamespace(
+                    choices=[
+                        types.SimpleNamespace(delta=types.SimpleNamespace(content=ch))
+                    ]
+                )
 
     class DummyAsyncStream:
         def __init__(self, text):
@@ -76,7 +86,9 @@ async def test_astream(monkeypatch):
                 ch = next(self._iter)
             except StopIteration:
                 raise StopAsyncIteration
-            return types.SimpleNamespace(choices=[types.SimpleNamespace(delta=types.SimpleNamespace(content=ch))])
+            return types.SimpleNamespace(
+                choices=[types.SimpleNamespace(delta=types.SimpleNamespace(content=ch))]
+            )
 
     class StreamClient(DummyClient):
         def create(
@@ -125,7 +137,9 @@ async def test_astream(monkeypatch):
     dummy = StreamClient("hi")
     adummy = AsyncStreamClient("hi")
     monkeypatch.setattr(openai, "OpenAI", lambda api_key=None, base_url=None: dummy)
-    monkeypatch.setattr(openai, "AsyncOpenAI", lambda api_key=None, base_url=None: adummy)
+    monkeypatch.setattr(
+        openai, "AsyncOpenAI", lambda api_key=None, base_url=None: adummy
+    )
     executor = LLMExecutor(model="gpt-3.5-turbo")
     tokens = [t async for t in executor.astream("hello")]
     assert tokens == list("hi")
