@@ -33,6 +33,13 @@ def serve(
         envvar="MOOGLA_RATE_LIMIT",
         show_default=False,
     ),
+    redis_url: str = typer.Option(
+        None,
+        "--redis-url",
+        help="Redis connection string for rate limiting",
+        envvar="MOOGLA_REDIS_URL",
+        show_default=False,
+    ),
 ):
     """Start the Moogla HTTP server.
 
@@ -48,6 +55,7 @@ def serve(
         plugin_names=plugin,
         server_api_key=api_key,
         rate_limit=rate_limit,
+        redis_url=redis_url,
     )
 
 
