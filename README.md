@@ -8,10 +8,15 @@ modular, observable and developer friendly.
 
 ## Features
 
-- Local execution and a simple plugin system
+- Local or remote model execution with streaming responses
+- Expandable plugin system with async hooks and CLI management
 - FastAPI server exposing OpenAI compatible endpoints
-- Built‑in web UI located in `src/moogla/web`
-- Example tests showing how to extend the framework
+- Optional API authentication via API key or JWT
+- Redis‑backed rate limiting
+- Built‑in dark‑mode web UI with file uploads and quick hints
+- Command to download models for offline use
+- Docker setup for containerised deployment
+- Example tests demonstrating extensibility
 
 ## Project Layout
 
