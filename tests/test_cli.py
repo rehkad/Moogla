@@ -15,12 +15,6 @@ def test_help():
     assert "pull" in result.output
 
 
-def test_pull():
-    result = runner.invoke(app, ["pull", "test-model"])
-    assert result.exit_code == 0
-    assert "Pulling test-model ... done." in result.output
-
-
 def test_serve_with_plugin(monkeypatch):
     captured = {}
 

@@ -34,6 +34,7 @@ def test_preprocess_exception_results_in_500(monkeypatch):
     client = TestClient(app, raise_server_exceptions=False)
     resp = client.post('/v1/completions', json={'prompt': 'abc'})
     assert resp.status_code == 500
+    assert resp.json()["detail"] == "Plugin error"
     sys.modules.pop('error_pre_plugin', None)
 
 
@@ -50,4 +51,5 @@ def test_postprocess_exception_results_in_500(monkeypatch):
     client = TestClient(app, raise_server_exceptions=False)
     resp = client.post('/v1/completions', json={'prompt': 'abc'})
     assert resp.status_code == 500
+    assert resp.json()["detail"] == "Plugin error"
     sys.modules.pop('error_post_plugin', None)
