@@ -1,6 +1,9 @@
 from importlib import import_module
+import logging
 from types import ModuleType
 from typing import Callable, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class Plugin:
@@ -26,6 +29,10 @@ def load_plugins(names: Optional[List[str]]) -> List[Plugin]:
     """Import and initialize plugins from module names."""
     plugins: List[Plugin] = []
     for name in names or []:
-        module = import_module(name)
+        try:
+            module = import_module(name)
+        except Exception as exc:
+            logger.error("Failed to import plugin '%s': %s", name, exc)
+            raise ImportError(f"Cannot import plugin '{name}'") from exc
         plugins.append(Plugin(module))
     return plugins
