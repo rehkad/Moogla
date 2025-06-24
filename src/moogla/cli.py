@@ -148,8 +148,11 @@ def serve(
 @app.command()
 def pull(
     model: str,
-    dir: Path = typer.Option(
-        None, "--dir", "-d", help="Directory for downloaded models"
+    directory: Path = typer.Option(
+        None,
+        "--directory",
+        "-d",
+        help="Directory to save downloaded models",
     ),
 ):
     """Download a model into the local cache.
@@ -157,10 +160,10 @@ def pull(
     Parameters
     ----------
     model: Identifier, path or URL of the model to fetch.
-    dir: Target directory for the downloaded file.
+    directory: Target directory for the downloaded file.
     """
     settings = Settings()
-    dest_dir = dir or settings.model_dir
+    dest_dir = directory or settings.model_dir
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     parsed = urlparse(model)
