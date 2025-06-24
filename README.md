@@ -124,7 +124,8 @@ uvicorn moogla.server:create_app --reload
 
 ## Running Tests
 
-Before running the test suite make sure the development extras are installed:
+The test suite relies on packages provided by the optional development
+dependencies, so ensure they are installed before running the tests:
 
 ```bash
 pip install -e .[dev]
