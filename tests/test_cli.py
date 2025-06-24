@@ -2,6 +2,10 @@ from typer.testing import CliRunner
 from fastapi.testclient import TestClient
 from moogla.cli import app
 from moogla import server
+
+class DummyExecutor:
+    def complete(self, prompt: str, max_tokens: int = 16) -> str:
+        return prompt[::-1]
 import types
 
 runner = CliRunner()
@@ -25,6 +29,7 @@ def test_serve_with_plugin(monkeypatch):
         captured['app'] = app
 
     monkeypatch.setattr(server, 'uvicorn', types.SimpleNamespace(run=fake_run))
+    monkeypatch.setattr(server, 'LLMExecutor', lambda *a, **kw: DummyExecutor())
 
     result = runner.invoke(app, ['serve', '--plugin', 'tests.dummy_plugin'])
     assert result.exit_code == 0

@@ -54,6 +54,17 @@ moogla pull codellama:13b
 moogla serve --plugin tests.dummy_plugin
 ```
 
+Plugins can also be distributed as separate packages by exposing the
+`moogla.plugins` entry point. A minimal `pyproject.toml` might look like:
+
+```toml
+[project.entry-points."moogla.plugins"]
+example = "my_plugin.module"
+```
+
+After installing the package, the plugin will be picked up automatically
+without passing `--plugin` on the command line.
+
 You can then query the chat completion endpoint:
 
 ```bash
