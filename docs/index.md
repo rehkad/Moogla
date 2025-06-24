@@ -9,3 +9,4 @@ site contains user and developer documentation.
 - [Plugin Development](plugins.md)
 - [Authentication](authentication.md)
 - [Web UI](web_ui.md)
+- [Metrics](metrics.md)

@@ -3,12 +3,13 @@ import logging
 from pathlib import Path
 from typing import List, Optional
 from contextlib import asynccontextmanager
+from time import perf_counter
 
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlmodel import SQLModel, Session, create_engine, select
@@ -16,6 +17,7 @@ from passlib.context import CryptContext
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from .auth import User
 
 from .executor import LLMExecutor
@@ -24,6 +26,22 @@ from .config import Settings
 from . import plugins_config
 
 logger = logging.getLogger(__name__)
+
+# Prometheus metrics
+REQUEST_COUNT = Counter(
+    "moogla_requests_total",
+    "Total number of requests",
+    ["path"],
+)
+REQUEST_LATENCY = Histogram(
+    "moogla_request_latency_seconds",
+    "Request latency in seconds",
+    ["path"],
+)
+TOKEN_USAGE = Counter(
+    "moogla_tokens_generated_total",
+    "Total tokens generated",
+)
 
 
 def create_app(
@@ -128,6 +146,7 @@ def create_app(
         """Return a simple heartbeat response for monitoring."""
         return {"status": "ok"}
 
+
     class Credentials(BaseModel):
         username: str
         password: str
@@ -185,10 +204,19 @@ def create_app(
 
     route_args = {"dependencies": [auth_dependency]} if auth_dependency else {}
 
+    @app.get("/metrics", **route_args)
+    def metrics():
+        """Expose Prometheus metrics."""
+        data = generate_latest()
+        return Response(content=data, media_type=CONTENT_TYPE_LATEST)
+
     @app.post("/v1/chat/completions", **route_args)
     async def chat_completions(req: ChatRequest):
         """Handle Chat API calls and return a reversed assistant reply."""
+        start = perf_counter()
+        REQUEST_COUNT.labels("/v1/chat/completions").inc()
         if not req.messages:
+            REQUEST_LATENCY.labels("/v1/chat/completions").observe(perf_counter() - start)
             return {"choices": []}
         content = req.messages[-1].content
         if req.stream:
@@ -202,16 +230,22 @@ def create_app(
                         raise HTTPException(status_code=500, detail="Plugin error") from exc
 
                 async for token in executor.astream(text):
+                    TOKEN_USAGE.inc(len(token))
                     yield json.dumps({"choices": [{"delta": {"content": token}}]}) + "\n"
+                REQUEST_LATENCY.labels("/v1/chat/completions").observe(perf_counter() - start)
 
             return StreamingResponse(event_stream(), media_type="text/event-stream")
 
         reply = await apply_plugins(content)
+        TOKEN_USAGE.inc(len(reply))
+        REQUEST_LATENCY.labels("/v1/chat/completions").observe(perf_counter() - start)
         return {"choices": [{"message": {"role": "assistant", "content": reply}}]}
 
     @app.post("/v1/completions", **route_args)
     async def completions(req: CompletionRequest):
         """Return a completion for the given prompt using the mock backend."""
+        start = perf_counter()
+        REQUEST_COUNT.labels("/v1/completions").inc()
         if req.stream:
             async def event_stream():
                 text = req.prompt
@@ -223,11 +257,15 @@ def create_app(
                         raise HTTPException(status_code=500, detail="Plugin error") from exc
 
                 async for token in executor.astream(text):
+                    TOKEN_USAGE.inc(len(token))
                     yield json.dumps({"choices": [{"delta": {"content": token}}]}) + "\n"
+                REQUEST_LATENCY.labels("/v1/completions").observe(perf_counter() - start)
 
             return StreamingResponse(event_stream(), media_type="text/event-stream")
 
         reply = await apply_plugins(req.prompt)
+        TOKEN_USAGE.inc(len(reply))
+        REQUEST_LATENCY.labels("/v1/completions").observe(perf_counter() - start)
         return {"choices": [{"text": reply}]}
 
     return app
