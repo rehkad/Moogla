@@ -200,6 +200,28 @@ def create_app(
 
     route_args = {"dependencies": [auth_dependency]} if auth_dependency else {}
 
+    class PasswordChange(BaseModel):
+        username: str
+        old_password: str
+        new_password: str
+
+    @app.get("/users", **route_args)
+    def list_users():
+        with Session(engine) as session:
+            users = session.exec(select(User)).all()
+            return [{"id": u.id, "username": u.username} for u in users]
+
+    @app.post("/change-password", **route_args)
+    def change_password(change: PasswordChange):
+        with Session(engine) as session:
+            user = session.exec(select(User).where(User.username == change.username)).first()
+            if not user or not pwd_context.verify(change.old_password, user.hashed_password):
+                raise HTTPException(status_code=400, detail="Invalid credentials")
+            user.hashed_password = pwd_context.hash(change.new_password)
+            session.add(user)
+            session.commit()
+        return {"status": "ok"}
+
     @app.post("/v1/chat/completions", **route_args)
     async def chat_completions(req: ChatRequest):
         """Handle Chat API calls and return a reversed assistant reply."""
