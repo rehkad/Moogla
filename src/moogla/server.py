@@ -3,7 +3,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional, cast
 
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -28,9 +28,12 @@ def create_app(
     """Build the FastAPI application."""
     plugins = load_plugins(plugin_names)
 
-    model = model or os.getenv("MOOGLA_MODEL", "gpt-3.5-turbo")
-    api_key = api_key or os.getenv("OPENAI_API_KEY")
-    api_base = api_base or os.getenv("OPENAI_API_BASE")
+    if model is None:
+        model = os.getenv("MOOGLA_MODEL") or "gpt-3.5-turbo"
+    if api_key is None:
+        api_key = os.getenv("OPENAI_API_KEY") or ""
+    if api_base is None:
+        api_base = os.getenv("OPENAI_API_BASE")
     server_api_key = server_api_key or os.getenv("MOOGLA_API_KEY")
     if rate_limit is None:
         env_limit = os.getenv("MOOGLA_RATE_LIMIT")
@@ -81,7 +84,7 @@ def create_app(
                             return
                 await self.app(scope, receive, send)
 
-        app.add_middleware(RateLimitMiddleware, limit=rate_limit)
+        app.add_middleware(cast(Any, RateLimitMiddleware), limit=rate_limit)
 
     static_dir = Path(__file__).resolve().parent / "web"
     if static_dir.exists():

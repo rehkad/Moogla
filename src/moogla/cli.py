@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, List
 import os
 from pathlib import Path
 from urllib.parse import urlparse
@@ -82,24 +82,24 @@ def pull(
         with httpx.stream("GET", url) as resp:
             resp.raise_for_status()
             total = int(resp.headers.get("content-length", 0))
-            with open(dest, "wb") as f, typer.progressbar(
-                length=total or None, label="Downloading"
-            ) as bar:
-                for chunk in resp.iter_bytes():
-                    f.write(chunk)
-                    if total:
-                        bar.update(len(chunk))
+            with open(dest, "wb") as f:
+                bar: Any
+                with typer.progressbar(length=total or None, label="Downloading") as bar:
+                    for chunk in resp.iter_bytes():
+                        f.write(chunk)
+                        if total:
+                            bar.update(len(chunk))
     elif Path(model).is_file():
         size = os.path.getsize(model)
-        with open(model, "rb") as src, open(dest, "wb") as dst, typer.progressbar(
-            length=size, label="Downloading"
-        ) as bar:
-            while True:
-                data = src.read(8192)
-                if not data:
-                    break
-                dst.write(data)
-                bar.update(len(data))
+        with open(model, "rb") as src, open(dest, "wb") as dst:
+            progress: Any
+            with typer.progressbar(length=size, label="Downloading") as progress:
+                while True:
+                    data = src.read(8192)
+                    if not data:
+                        break
+                    dst.write(data)
+                    progress.update(len(data))
     else:
         typer.echo(f"Unknown model source: {model}")
         raise typer.Exit(code=1)

@@ -1,6 +1,7 @@
-from __future__ import annotations
 
 """Utilities for executing prompts against LLM providers."""
+
+from __future__ import annotations
 
 from typing import Optional
 import os
@@ -24,7 +25,9 @@ class LLMExecutor:
             messages=[{"role": "user", "content": prompt}],
             max_tokens=max_tokens,
         )
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        assert content is not None
+        return content
 
     async def acomplete(self, prompt: str, *, max_tokens: int = 16) -> str:
         """Asynchronously return a completion for the given prompt."""
@@ -33,4 +36,6 @@ class LLMExecutor:
             messages=[{"role": "user", "content": prompt}],
             max_tokens=max_tokens,
         )
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        assert content is not None
+        return content

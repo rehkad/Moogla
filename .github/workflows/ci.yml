@@ -20,6 +20,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[dev]
           pip install pytest-asyncio
+      - name: Lint with ruff
+        run: ruff src tests
+      - name: Type check with mypy
+        run: mypy src tests
       - name: Run tests
         run: pytest
 
