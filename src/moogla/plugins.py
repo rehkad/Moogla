@@ -15,20 +15,29 @@ class Plugin:
     def __init__(self, module: ModuleType) -> None:
         self.module = module
         self.preprocess: Optional[Callable[[str], str]] = getattr(module, "preprocess", None)
+        self.preprocess_async: Optional[Callable[[str], str]] = getattr(
+            module, "preprocess_async", None
+        )
         self.postprocess: Optional[Callable[[str], str]] = getattr(module, "postprocess", None)
+        self.postprocess_async: Optional[Callable[[str], str]] = getattr(
+            module, "postprocess_async", None
+        )
+        self.order: int = getattr(module, "order", 0)
 
     async def run_preprocess(self, text: str) -> str:
-        if self.preprocess:
-            if inspect.iscoroutinefunction(self.preprocess):
-                return await self.preprocess(text)
-            return self.preprocess(text)
+        func = self.preprocess_async or self.preprocess
+        if func:
+            if inspect.iscoroutinefunction(func):
+                return await func(text)
+            return func(text)
         return text
 
     async def run_postprocess(self, text: str) -> str:
-        if self.postprocess:
-            if inspect.iscoroutinefunction(self.postprocess):
-                return await self.postprocess(text)
-            return self.postprocess(text)
+        func = self.postprocess_async or self.postprocess
+        if func:
+            if inspect.iscoroutinefunction(func):
+                return await func(text)
+            return func(text)
         return text
 
 
@@ -44,4 +53,6 @@ def load_plugins(names: Optional[List[str]]) -> List[Plugin]:
             logger.error("Failed to import plugin '%s': %s", name, exc)
             raise ImportError(f"Cannot import plugin '{name}'") from exc
         plugins.append(Plugin(module))
+
+    plugins.sort(key=lambda p: p.order)
     return plugins

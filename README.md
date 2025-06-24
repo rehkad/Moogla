@@ -61,6 +61,16 @@ curl -X POST http://localhost:11434/v1/chat/completions \
   -d '{"messages": [{"role": "user", "content": "hello"}]}'
 ```
 
+### Plugin API
+
+Plugins are regular Python modules that expose optional `preprocess` and
+`postprocess` hooks. Asynchronous variants named `preprocess_async` and
+`postprocess_async` are also supported. Hooks receive the current text and
+return the modified value.
+
+A plugin can specify an integer `order` attribute to control execution order
+when multiple plugins are loaded. Lower numbers run first.
+
 ## Development Setup
 
 The project uses [Typer](https://typer.tiangolo.com/) for the CLI and
