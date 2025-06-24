@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     db_url: str = Field("sqlite:///:memory:", env="MOOGLA_DB_URL")
     plugin_db: Optional[Path] = Field(None, env="MOOGLA_PLUGIN_DB")
     jwt_secret: str = Field("secret", env="MOOGLA_JWT_SECRET")
+    workers: int = Field(0, env="MOOGLA_WORKERS")
     model_dir: Path = Field(
         default_factory=lambda: Path.home() / ".cache" / "moogla" / "models",
         env="MOOGLA_MODEL_DIR",

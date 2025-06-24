@@ -81,8 +81,9 @@ when multiple plugins are loaded. Lower numbers run first.
 
 Local models loaded through `llama-cpp-python` do not expose an asynchronous
 interface. When `LLMExecutor.acomplete` is called with such a model, inference
-runs in a background thread via `asyncio.to_thread`. Heavy local workloads can
-therefore limit overall throughput compared to fully async providers.
+runs in a background thread via `asyncio.to_thread` unless you start additional
+worker processes using `--workers` (or `MOOGLA_WORKERS`). Heavy local workloads
+may still limit throughput compared to fully async providers.
 
 ## Development Setup
 

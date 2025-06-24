@@ -39,6 +39,7 @@ def create_app(
     db_url: Optional[str] = None,
     plugin_db: Optional[str] = None,
     jwt_secret: Optional[str] = None,
+    workers: Optional[int] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
     settings = settings or Settings()
@@ -52,6 +53,8 @@ def create_app(
     db_url = db_url or settings.db_url
     plugin_db = plugin_db or settings.plugin_db
     secret_key = jwt_secret or settings.jwt_secret
+    if workers is None:
+        workers = settings.workers
     algorithm = "HS256"
 
     if plugin_db is None and db_url and db_url.startswith("sqlite:///"):
@@ -61,7 +64,9 @@ def create_app(
 
     plugins = load_plugins(plugin_names)
 
-    executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
+    executor = LLMExecutor(
+        model=model, api_key=api_key, api_base=api_base, workers=workers
+    )
 
     engine = create_engine(db_url or "sqlite:///:memory:")
     SQLModel.metadata.create_all(engine)
@@ -246,6 +251,7 @@ def start_server(
     db_url: Optional[str] = None,
     plugin_db: Optional[str] = None,
     jwt_secret: Optional[str] = None,
+    workers: Optional[int] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -259,5 +265,6 @@ def start_server(
         db_url=db_url,
         plugin_db=plugin_db,
         jwt_secret=jwt_secret,
+        workers=workers,
     )
     uvicorn.run(app, host=host, port=port)

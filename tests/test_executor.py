@@ -88,3 +88,33 @@ async def test_astream(monkeypatch):
     executor = LLMExecutor(model="gpt-3.5-turbo")
     tokens = [t async for t in executor.astream("hello")]
     assert tokens == list("hi")
+
+
+@pytest.mark.asyncio
+async def test_process_workers(monkeypatch):
+    import sys
+    import time
+    import types
+    import asyncio
+
+    class DummyPipeline:
+        def __call__(self, text, max_new_tokens=16):
+            time.sleep(0.25)
+            return [{"generated_text": text[::-1]}]
+
+    monkeypatch.setitem(
+        sys.modules,
+        "transformers",
+        types.SimpleNamespace(pipeline=lambda *a, **k: DummyPipeline()),
+    )
+
+    executor = LLMExecutor(model="some/model", workers=2)
+
+    async def call(t: str) -> str:
+        return await executor.acomplete(t)
+
+    start = time.perf_counter()
+    r1, r2 = await asyncio.gather(call("abc"), call("xyz"))
+    duration = time.perf_counter() - start
+    assert r1 == "cba" and r2 == "zyx"
+    assert duration < 0.45

@@ -104,6 +104,14 @@ def serve(
         envvar="MOOGLA_PLUGIN_DB",
         show_default=False,
     ),
+    workers: int = typer.Option(
+        None,
+        "--workers",
+        "-w",
+        help="Number of local inference worker processes",
+        envvar="MOOGLA_WORKERS",
+        show_default=False,
+    ),
 ):
     """Start the Moogla HTTP server.
 
@@ -126,6 +134,7 @@ def serve(
         db_url=db_url,
         jwt_secret=jwt_secret,
         plugin_db=plugin_db,
+        workers=workers,
     )
 
 
