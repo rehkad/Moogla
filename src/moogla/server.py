@@ -30,6 +30,8 @@ def create_app(
     db_url: Optional[str] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
+    if db_url:
+        os.environ["MOOGLA_PLUGIN_DB"] = db_url.replace("sqlite:///", "")
     plugins = load_plugins(plugin_names)
 
     model = model or os.getenv("MOOGLA_MODEL", "gpt-3.5-turbo")
