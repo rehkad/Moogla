@@ -36,3 +36,22 @@ async def test_missing_api_key(monkeypatch):
     ) as client:
         resp = await client.post("/v1/completions", json={"prompt": "abc"})
     assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_register_existing_user(monkeypatch):
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
+    app = create_app()
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        await client.post(
+            "/register",
+            json={"username": "alice", "password": "password"},
+        )
+        resp = await client.post(
+            "/register",
+            json={"username": "alice", "password": "password"},
+        )
+    assert resp.status_code == 400
+    assert resp.json() == {"detail": "User exists"}
