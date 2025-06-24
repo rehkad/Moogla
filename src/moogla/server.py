@@ -28,7 +28,14 @@ def create_app(
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
 ) -> FastAPI:
-    """Build the FastAPI application."""
+    """Build the FastAPI application.
+
+    Parameters
+    ----------
+    db_url:
+        Path or URL of the authentication database used for API key
+        verification.
+    """
     plugins = load_plugins(plugin_names)
 
     model = model or os.getenv("MOOGLA_MODEL", "gpt-3.5-turbo")
@@ -157,7 +164,14 @@ def start_server(
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
 ) -> None:
-    """Run the HTTP server."""
+    """Run the HTTP server.
+
+    Parameters
+    ----------
+    db_url:
+        Path or URL of the authentication database used for API key
+        verification.
+    """
     app = create_app(
         plugin_names=plugin_names,
         model=model,
