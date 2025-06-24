@@ -195,13 +195,22 @@ class LLMExecutor:
                     yield text
             return
 
-        for token in self.stream(
-            prompt,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            top_p=top_p,
-        ):
-            yield token
+        if self.llama or self.generator or self.client:
+            tokens = await asyncio.to_thread(
+                lambda: list(
+                    self.stream(
+                        prompt,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        top_p=top_p,
+                    )
+                )
+            )
+            for token in tokens:
+                yield token
+            return
+
+        raise RuntimeError("No LLM backend configured")
 
     async def acomplete(
         self,
