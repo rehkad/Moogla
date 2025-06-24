@@ -11,5 +11,9 @@ The API also provides `/register` and `/login` endpoints for JWT based
 authentication. After registration, send the returned token in an
 `Authorization: Bearer <token>` header.
 
+Authenticated clients can list all users via `/users` and change
+passwords using the `/change-password` endpoint. Both require either a
+valid API key or JWT token.
+
 Rate limiting can be enabled with `MOOGLA_RATE_LIMIT` and a Redis
 connection via `MOOGLA_REDIS_URL`.
