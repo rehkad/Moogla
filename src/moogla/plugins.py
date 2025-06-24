@@ -2,6 +2,7 @@ from importlib import import_module
 import logging
 from types import ModuleType
 from typing import Callable, List, Optional
+import inspect
 
 logger = logging.getLogger(__name__)
 
@@ -14,13 +15,17 @@ class Plugin:
         self.preprocess: Optional[Callable[[str], str]] = getattr(module, "preprocess", None)
         self.postprocess: Optional[Callable[[str], str]] = getattr(module, "postprocess", None)
 
-    def run_preprocess(self, text: str) -> str:
+    async def run_preprocess(self, text: str) -> str:
         if self.preprocess:
+            if inspect.iscoroutinefunction(self.preprocess):
+                return await self.preprocess(text)
             return self.preprocess(text)
         return text
 
-    def run_postprocess(self, text: str) -> str:
+    async def run_postprocess(self, text: str) -> str:
         if self.postprocess:
+            if inspect.iscoroutinefunction(self.postprocess):
+                return await self.postprocess(text)
             return self.postprocess(text)
         return text
 

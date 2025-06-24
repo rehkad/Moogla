@@ -1,4 +1,6 @@
 import os
+import pytest
+import httpx
 from fastapi.testclient import TestClient
 
 from moogla import server
@@ -11,31 +13,43 @@ class DummyExecutor:
     def complete(self, prompt: str, max_tokens: int = 16) -> str:
         return prompt[::-1]
 
+    async def acomplete(self, prompt: str, max_tokens: int = 16) -> str:
+        return prompt[::-1]
 
-def test_chat_completion(monkeypatch):
+
+@pytest.mark.asyncio
+async def test_chat_completion(monkeypatch):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
     app = create_app()
-    client = TestClient(app)
-    resp = client.post("/v1/chat/completions", json={"messages": [{"role": "user", "content": "hello"}]})
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}]},
+        )
     assert resp.status_code == 200
     data = resp.json()
     assert data["choices"][0]["message"]["content"] == "olleh"
 
 
-def test_completion_endpoint(monkeypatch):
+@pytest.mark.asyncio
+async def test_completion_endpoint(monkeypatch):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
     app = create_app()
-    client = TestClient(app)
-    resp = client.post("/v1/completions", json={"prompt": "abc"})
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        resp = await client.post("/v1/completions", json={"prompt": "abc"})
     assert resp.status_code == 200
     assert resp.json()["choices"][0]["text"] == "cba"
 
 
-def test_plugins(monkeypatch):
+@pytest.mark.asyncio
+async def test_plugins(monkeypatch):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
     app = create_app(["tests.dummy_plugin"])
-    client = TestClient(app)
-    resp = client.post("/v1/chat/completions", json={"messages": [{"role": "user", "content": "hello"}]})
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}]},
+        )
     assert resp.status_code == 200
     assert resp.json()["choices"][0]["message"]["content"] == "!!OLLEH!!"
 
