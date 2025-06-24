@@ -1,6 +1,7 @@
 from typer.testing import CliRunner
 import httpx
 from fastapi.testclient import TestClient
+import pytest
 
 from moogla.cli import app
 from moogla import server, plugins_config
@@ -59,3 +60,21 @@ def test_persisted_plugins_loaded(tmp_path, monkeypatch):
     resp = client.post("/v1/completions", json={"prompt": "abc"})
     assert resp.status_code == 200
     assert resp.json()["choices"][0]["text"] == "!!CBA!!"
+
+
+def test_add_invalid_plugin_direct(tmp_path, monkeypatch):
+    cfg = tmp_path / "plugins.yaml"
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
+    with pytest.raises(ImportError):
+        plugins_config.add_plugin("no.such.module")
+    assert not cfg.exists()
+
+
+def test_cli_add_invalid_plugin(tmp_path, monkeypatch):
+    cfg = tmp_path / "plugins.yaml"
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
+
+    result = runner.invoke(app, ["plugin", "add", "no.such.module"])
+    assert result.exit_code == 1
+    assert "Failed to import plugin" in result.output
+    assert not cfg.exists()

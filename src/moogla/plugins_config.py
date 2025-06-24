@@ -1,5 +1,6 @@
 import os
 import json
+from importlib import import_module
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
@@ -54,6 +55,12 @@ def get_plugins() -> List[str]:
 
 
 def add_plugin(name: str, **settings: Any) -> None:
+    """Add a plugin to the configuration after verifying it can be imported."""
+    try:
+        import_module(name)
+    except Exception as exc:  # pragma: no cover - import error path tested via CLI
+        raise ImportError(f"Cannot import plugin '{name}'") from exc
+
     data = _load()
     plugins = data.get("plugins")
     if plugins is None:

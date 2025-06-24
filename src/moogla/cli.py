@@ -33,7 +33,11 @@ def plugin_callback(
 @plugin_app.command("add")
 def plugin_add(name: str) -> None:
     """Add a plugin to the persistent store."""
-    plugins_config.add_plugin(name)
+    try:
+        plugins_config.add_plugin(name)
+    except ImportError as exc:
+        typer.echo(f"Failed to import plugin '{name}': {exc}", err=True)
+        raise typer.Exit(code=1)
     typer.echo(f"Added {name}")
 
 
