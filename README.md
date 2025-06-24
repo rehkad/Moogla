@@ -95,7 +95,9 @@ the header to switch themes.
 Set `MOOGLA_API_KEY` to enable simple header based authentication. Requests must
 include an `X-API-Key` header matching the configured value. Optionally set
 `MOOGLA_RATE_LIMIT` to limit the number of requests per minute from a single IP.
-These values can also be passed to `create_app` or `moogla serve`.
+When rate limiting is enabled, `MOOGLA_REDIS_URL` controls the Redis connection
+used for tracking request counts (default `redis://localhost:6379`). These values
+can also be passed to `create_app` or `moogla serve`.
 
 ## Running with Docker
 

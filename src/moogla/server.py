@@ -1,13 +1,15 @@
 import json
 import logging
 import os
-import time
 from pathlib import Path
 from typing import List, Optional
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -24,6 +26,7 @@ def create_app(
     api_base: Optional[str] = None,
     server_api_key: Optional[str] = None,
     rate_limit: Optional[int] = None,
+    redis_url: Optional[str] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
     plugins = load_plugins(plugin_names)
@@ -35,6 +38,7 @@ def create_app(
     if rate_limit is None:
         env_limit = os.getenv("MOOGLA_RATE_LIMIT")
         rate_limit = int(env_limit) if env_limit else None
+    redis_url = redis_url or os.getenv("MOOGLA_REDIS_URL", "redis://localhost:6379")
 
     executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
 
@@ -50,38 +54,19 @@ def create_app(
 
         dependencies.append(Depends(verify_api_key))
 
-    app = FastAPI(title="Moogla API", dependencies=dependencies)
-
     if rate_limit:
+        dependencies.append(Depends(RateLimiter(times=rate_limit, seconds=60)))
 
-        class RateLimitMiddleware:
-            def __init__(self, app: FastAPI, limit: int, window: int = 60) -> None:
-                self.app = app
-                self.limit = limit
-                self.window = window
-                self.hits: dict[str, tuple[int, float]] = {}
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        import redis.asyncio as redis
 
-            async def __call__(self, scope, receive, send):
-                if scope["type"] == "http":
-                    client = scope.get("client")
-                    if client:
-                        ip = client[0]
-                        now = time.time()
-                        count, start = self.hits.get(ip, (0, now))
-                        if now - start > self.window:
-                            start = now
-                            count = 0
-                        count += 1
-                        self.hits[ip] = (count, start)
-                        if count > self.limit:
-                            response = JSONResponse(
-                                {"detail": "Too Many Requests"}, status_code=429
-                            )
-                            await response(scope, receive, send)
-                            return
-                await self.app(scope, receive, send)
+        redis_conn = redis.from_url(redis_url, encoding="utf8", decode_responses=True)
+        await FastAPILimiter.init(redis_conn)
+        yield
+        await FastAPILimiter.close()
 
-        app.add_middleware(RateLimitMiddleware, limit=rate_limit)
+    app = FastAPI(title="Moogla API", dependencies=dependencies, lifespan=lifespan)
 
     static_dir = Path(__file__).resolve().parent / "web"
     if static_dir.exists():
@@ -170,6 +155,7 @@ def start_server(
     api_base: Optional[str] = None,
     server_api_key: Optional[str] = None,
     rate_limit: Optional[int] = None,
+    redis_url: Optional[str] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -179,5 +165,6 @@ def start_server(
         api_base=api_base,
         server_api_key=server_api_key,
         rate_limit=rate_limit,
+        redis_url=redis_url,
     )
     uvicorn.run(app, host=host, port=port)
