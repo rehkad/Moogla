@@ -2,6 +2,7 @@ import types
 
 import openai
 import pytest
+import asyncio
 
 from moogla.executor import LLMExecutor
 
@@ -143,3 +144,58 @@ async def test_astream(monkeypatch):
     executor = LLMExecutor(model="gpt-3.5-turbo")
     tokens = [t async for t in executor.astream("hello")]
     assert tokens == list("hi")
+
+
+@pytest.mark.asyncio
+async def test_astream_sync_backend(monkeypatch):
+    class DummyStream:
+        def __init__(self, text):
+            self.text = text
+
+        def __iter__(self):
+            for ch in self.text:
+                yield types.SimpleNamespace(
+                    choices=[
+                        types.SimpleNamespace(delta=types.SimpleNamespace(content=ch))
+                    ]
+                )
+
+    class StreamClient(DummyClient):
+        def create(
+            self,
+            model,
+            messages,
+            max_tokens,
+            *,
+            temperature=None,
+            top_p=None,
+            stream=False,
+        ):
+            if stream:
+                return DummyStream(self.content)
+            return super().create(
+                model,
+                messages,
+                max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                stream=stream,
+            )
+
+    dummy = StreamClient("hi")
+    monkeypatch.setattr(openai, "OpenAI", lambda api_key=None, base_url=None: dummy)
+    monkeypatch.setattr(openai, "AsyncOpenAI", lambda api_key=None, base_url=None: None)
+
+    called = False
+
+    async def fake_to_thread(func, *args, **kwargs):
+        nonlocal called
+        called = True
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
+
+    executor = LLMExecutor(model="gpt-3.5-turbo")
+    tokens = [t async for t in executor.astream("hello")]
+    assert tokens == list("hi")
+    assert called is True
