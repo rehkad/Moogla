@@ -15,6 +15,7 @@ modular, observable and developer friendly.
 - Redis‑backed rate limiting
 - Built‑in dark‑mode web UI with file uploads and quick hints
 - Command to download models for offline use
+- Command to list available local models
 - Docker setup for containerised deployment
 - Example tests demonstrating extensibility
 
@@ -59,6 +60,12 @@ moogla pull codellama:13b
 moogla serve --model path/to/codellama-13b.gguf --plugin tests.dummy_plugin
 ```
 Models are stored under `~/.cache/moogla/models` by default. Set `MOOGLA_MODEL_DIR` before running the pull command to use a different directory.
+
+List downloaded files with:
+
+```bash
+moogla models
+```
 
 To use a Hugging Face model ID instead of a file path:
 
