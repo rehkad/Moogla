@@ -5,6 +5,7 @@ from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
+import secrets
 
 
 class Settings(BaseSettings):
@@ -18,7 +19,10 @@ class Settings(BaseSettings):
     redis_url: str = Field("redis://localhost:6379", env="MOOGLA_REDIS_URL")
     db_url: str = Field("sqlite:///:memory:", env="MOOGLA_DB_URL")
     plugin_file: Optional[Path] = Field(None, env="MOOGLA_PLUGIN_FILE")
-    jwt_secret: str = Field("secret", env="MOOGLA_JWT_SECRET")
+    jwt_secret: str = Field(
+        default_factory=lambda: secrets.token_urlsafe(32),
+        env="MOOGLA_JWT_SECRET",
+    )
     model_dir: Path = Field(
         default_factory=lambda: Path.home() / ".cache" / "moogla" / "models",
         env="MOOGLA_MODEL_DIR",
