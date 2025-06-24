@@ -39,6 +39,7 @@ def create_app(
     db_url: Optional[str] = None,
     plugin_file: Optional[str] = None,
     jwt_secret: Optional[str] = None,
+    token_exp_minutes: Optional[int] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
     settings = settings or Settings()
@@ -52,6 +53,9 @@ def create_app(
     db_url = db_url or settings.db_url
     plugin_file = plugin_file or settings.plugin_file
     secret_key = jwt_secret or settings.jwt_secret
+    token_exp_minutes = (
+        token_exp_minutes if token_exp_minutes is not None else settings.token_exp_minutes
+    )
     algorithm = "HS256"
 
     if jwt_secret is None and "MOOGLA_JWT_SECRET" not in os.environ:
@@ -164,7 +168,7 @@ def create_app(
                 raise HTTPException(status_code=401, detail="Invalid credentials")
         payload = {
             "sub": str(user.id),
-            "exp": datetime.utcnow() + timedelta(minutes=30),
+            "exp": datetime.utcnow() + timedelta(minutes=token_exp_minutes),
         }
         token = jwt.encode(payload, secret_key, algorithm=algorithm)
         return {"access_token": token, "token_type": "bearer"}
@@ -334,6 +338,7 @@ def start_server(
     db_url: Optional[str] = None,
     plugin_file: Optional[str] = None,
     jwt_secret: Optional[str] = None,
+    token_exp_minutes: Optional[int] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -347,5 +352,6 @@ def start_server(
         db_url=db_url,
         plugin_file=plugin_file,
         jwt_secret=jwt_secret,
+        token_exp_minutes=token_exp_minutes,
     )
     uvicorn.run(app, host=host, port=port)
