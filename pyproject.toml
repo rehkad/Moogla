@@ -17,6 +17,12 @@ dependencies = [
     "openai>=1.30",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pre-commit",
+]
+
 [project.scripts]
 moogla = "moogla.cli:app"
 
