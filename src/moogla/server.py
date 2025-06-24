@@ -12,6 +12,12 @@ from fastapi_limiter.depends import RateLimiter
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from sqlmodel import SQLModel, Session, create_engine, select
+from passlib.context import CryptContext
+from jose import jwt, JWTError
+from datetime import datetime, timedelta
+
+from .auth import User
 
 from .executor import LLMExecutor
 from .plugins import load_plugins
@@ -45,17 +51,38 @@ def create_app(
 
     executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
 
+    engine = create_engine(db_url or "sqlite:///:memory:")
+    SQLModel.metadata.create_all(engine)
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    secret_key = os.getenv("MOOGLA_JWT_SECRET", "secret")
+    algorithm = "HS256"
+
     dependencies = []
 
     if server_api_key:
 
-        async def verify_api_key(
-            x_api_key: Optional[str] = Header(None, alias="X-API-Key")
+        async def verify_auth(
+            x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+            authorization: Optional[str] = Header(None, alias="Authorization"),
         ) -> None:
-            if x_api_key != server_api_key:
-                raise HTTPException(status_code=401, detail="Invalid API Key")
+            if x_api_key == server_api_key:
+                return
+            if authorization and authorization.startswith("Bearer "):
+                token = authorization.split(" ", 1)[1]
+                try:
+                    payload = jwt.decode(token, secret_key, algorithms=[algorithm])
+                    user_id = int(payload.get("sub"))
+                except JWTError:
+                    raise HTTPException(status_code=401, detail="Invalid API Key")
+                with Session(engine) as session:
+                    if not session.get(User, user_id):
+                        raise HTTPException(status_code=401, detail="Invalid API Key")
+                return
+            raise HTTPException(status_code=401, detail="Invalid API Key")
 
-        dependencies.append(Depends(verify_api_key))
+        auth_dependency = Depends(verify_auth)
+    else:
+        auth_dependency = None
 
     if rate_limit:
         dependencies.append(Depends(RateLimiter(times=rate_limit, seconds=60)))
@@ -71,6 +98,10 @@ def create_app(
 
     app = FastAPI(title="Moogla API", dependencies=dependencies, lifespan=lifespan)
     app.state.db_url = db_url
+    app.state.engine = engine
+    app.state.pwd_context = pwd_context
+    app.state.jwt_secret = secret_key
+    app.state.jwt_algorithm = algorithm
 
     static_dir = Path(__file__).resolve().parent / "web"
     if static_dir.exists():
@@ -86,6 +117,32 @@ def create_app(
     def health_check():
         """Return a simple heartbeat response for monitoring."""
         return {"status": "ok"}
+
+    class Credentials(BaseModel):
+        username: str
+        password: str
+
+    @app.post("/register", status_code=201)
+    def register(creds: Credentials):
+        with Session(engine) as session:
+            existing = session.exec(select(User).where(User.username == creds.username)).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="User exists")
+            user = User(username=creds.username, hashed_password=pwd_context.hash(creds.password))
+            session.add(user)
+            session.commit()
+            session.refresh(user)
+            return {"id": user.id, "username": user.username}
+
+    @app.post("/login")
+    def login(creds: Credentials):
+        with Session(engine) as session:
+            user = session.exec(select(User).where(User.username == creds.username)).first()
+            if not user or not pwd_context.verify(creds.password, user.hashed_password):
+                raise HTTPException(status_code=401, detail="Invalid credentials")
+        payload = {"sub": str(user.id), "exp": datetime.utcnow() + timedelta(minutes=30)}
+        token = jwt.encode(payload, secret_key, algorithm=algorithm)
+        return {"access_token": token, "token_type": "bearer"}
 
     class Message(BaseModel):
         role: str
@@ -116,7 +173,9 @@ def create_app(
                 raise HTTPException(status_code=500, detail="Plugin error") from exc
         return response
 
-    @app.post("/v1/chat/completions")
+    route_args = {"dependencies": [auth_dependency]} if auth_dependency else {}
+
+    @app.post("/v1/chat/completions", **route_args)
     async def chat_completions(req: ChatRequest):
         """Handle Chat API calls and return a reversed assistant reply."""
         if not req.messages:
@@ -133,7 +192,7 @@ def create_app(
         reply = await apply_plugins(content)
         return {"choices": [{"message": {"role": "assistant", "content": reply}}]}
 
-    @app.post("/v1/completions")
+    @app.post("/v1/completions", **route_args)
     async def completions(req: CompletionRequest):
         """Return a completion for the given prompt using the mock backend."""
         if req.stream:
