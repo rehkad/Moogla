@@ -4,11 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moogla Chat</title>
+    <script>
+        if (localStorage.getItem('darkMode') === '1') {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-4">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
     <div class="container mx-auto max-w-xl space-y-4">
-        <h1 class="text-2xl font-bold">Moogla Chat</h1>
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold">Moogla Chat</h1>
+            <button id="toggle-dark" class="text-xs border rounded px-2 py-1">Dark</button>
+        </div>
 
         <div class="flex items-center space-x-2">
             <label for="model" class="text-sm font-medium">Model:</label>
@@ -25,12 +33,12 @@
 
         <div id="hints" class="flex flex-wrap gap-2"></div>
 
-        <div id="chat" class="bg-white p-4 rounded shadow h-64 overflow-y-auto"></div>
+        <div id="chat" class="bg-white dark:bg-gray-800 p-4 rounded shadow h-64 overflow-y-auto"></div>
 
         <div id="loading" class="text-center text-gray-500 hidden">Assistant is typing…</div>
 
         <div class="flex">
-            <textarea id="message" rows="2" class="flex-grow border rounded-l px-3 py-2 resize-none" placeholder="Type a message"></textarea>
+            <textarea id="message" rows="2" class="flex-grow border rounded-l px-3 py-2 resize-none dark:bg-gray-800" placeholder="Type a message"></textarea>
             <button id="send" class="bg-blue-500 text-white px-4 py-2 rounded-r">Send</button>
         </div>
     </div>
