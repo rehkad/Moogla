@@ -57,16 +57,18 @@ DEFAULT_DIR = Path.home() / ".cache" / "moogla" / "models"
 @app.command()
 def pull(
     model: str,
-    dir: Path = typer.Option(None, "--dir", "-d", help="Directory for downloaded models"),
+    model_dir: Path = typer.Option(
+        None, "--dir", "-d", help="Directory for downloaded models"
+    ),
 ):
     """Download a model into the local cache.
 
     Parameters
     ----------
     model: Identifier, path or URL of the model to fetch.
-    dir: Target directory for the downloaded file.
+    model_dir: Target directory for the downloaded file.
     """
-    dest_dir = dir or Path(os.getenv("MOOGLA_MODEL_DIR", DEFAULT_DIR))
+    dest_dir = model_dir or Path(os.getenv("MOOGLA_MODEL_DIR", DEFAULT_DIR))
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     parsed = urlparse(model)
