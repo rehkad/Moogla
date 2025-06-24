@@ -1,6 +1,8 @@
 from typing import List, Optional
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from pydantic import BaseModel
 import uvicorn
 
@@ -12,6 +14,10 @@ def create_app(plugin_names: Optional[List[str]] = None) -> FastAPI:
     plugins = load_plugins(plugin_names)
 
     app = FastAPI(title="Moogla API")
+
+    static_dir = Path(__file__).resolve().parent / "web"
+    if static_dir.exists():
+        app.mount("/app", StaticFiles(directory=static_dir, html=True), name="static")
 
     @app.get("/health")
     def health_check():

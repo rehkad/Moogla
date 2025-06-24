@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moogla Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="container mx-auto max-w-xl">
+        <h1 class="text-2xl font-bold mb-4">Moogla Chat</h1>
+        <div id="chat" class="bg-white p-4 rounded shadow h-64 overflow-y-auto mb-4"></div>
+        <div class="flex">
+            <input id="message" class="flex-grow border rounded-l px-3 py-2" type="text" placeholder="Type a message">
+            <button id="send" class="bg-blue-500 text-white px-4 py-2 rounded-r">Send</button>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

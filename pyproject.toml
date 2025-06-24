@@ -23,3 +23,6 @@ moogla = "moogla.cli:app"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"moogla.web" = ["*"]
+
