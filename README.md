@@ -90,6 +90,23 @@ Then navigate to [http://localhost:11434/app](http://localhost:11434/app).
 Double‑click a chat bubble to copy its contents and use the dark‑mode toggle in
 the header to switch themes.
 
+## Running with Docker
+
+Build the image and start the server:
+
+```bash
+docker build -t moogla .
+docker run -p 11434:11434 moogla
+```
+
+You can also use `docker-compose` to mount a models directory and supply
+environment variables:
+
+```bash
+docker-compose up
+```
+
+
 ## Contributing Guidelines
 
 - Use the `src` layout for all packages and modules.

@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  moogla:
+    build: .
+    ports:
+      - "11434:11434"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MOOGLA_MODEL=codellama:13b
+    volumes:
+      - ./models:/models
