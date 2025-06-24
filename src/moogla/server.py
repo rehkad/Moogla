@@ -6,7 +6,7 @@ from typing import List, Optional
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 from fastapi.responses import FileResponse, StreamingResponse
@@ -21,6 +21,7 @@ from .auth import User
 
 from .executor import LLMExecutor
 from .plugins import load_plugins
+from . import plugins_config
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,7 @@ def create_app(
     app.state.pwd_context = pwd_context
     app.state.jwt_secret = secret_key
     app.state.jwt_algorithm = algorithm
+    app.state.plugins = plugins
 
     static_dir = Path(__file__).resolve().parent / "web"
     if static_dir.exists():
@@ -144,6 +146,36 @@ def create_app(
         token = jwt.encode(payload, secret_key, algorithm=algorithm)
         return {"access_token": token, "token_type": "bearer"}
 
+    class PluginName(BaseModel):
+        name: str
+
+    @app.get("/plugins")
+    def list_plugins():
+        """Return the currently enabled plugins."""
+        return {"plugins": [p.module.__name__ for p in app.state.plugins]}
+
+    @app.post("/plugins", status_code=201)
+    def enable_plugin(plugin: PluginName):
+        if any(p.module.__name__ == plugin.name for p in app.state.plugins):
+            raise HTTPException(status_code=400, detail="Plugin already enabled")
+        try:
+            new_plugin = load_plugins([plugin.name])[0]
+        except ImportError:
+            raise HTTPException(status_code=400, detail="Invalid plugin")
+        app.state.plugins.append(new_plugin)
+        app.state.plugins.sort(key=lambda p: p.order)
+        plugins_config.add_plugin(plugin.name)
+        return {"plugins": [p.module.__name__ for p in app.state.plugins]}
+
+    @app.delete("/plugins/{name}", status_code=204)
+    def disable_plugin(name: str):
+        for idx, plg in enumerate(app.state.plugins):
+            if plg.module.__name__ == name:
+                app.state.plugins.pop(idx)
+                plugins_config.remove_plugin(name)
+                return Response(status_code=204)
+        raise HTTPException(status_code=404, detail="Plugin not enabled")
+
     class Message(BaseModel):
         role: str
         content: str
@@ -158,14 +190,14 @@ def create_app(
 
     async def apply_plugins(text: str) -> str:
         """Run text through plugin hooks and return the mock LLM output."""
-        for plugin in plugins:
+        for plugin in app.state.plugins:
             try:
                 text = await plugin.run_preprocess(text)
             except Exception as exc:
                 logger.exception("Preprocess plugin failed: %s", exc)
                 raise HTTPException(status_code=500, detail="Plugin error") from exc
         response = await executor.acomplete(text)
-        for plugin in plugins:
+        for plugin in app.state.plugins:
             try:
                 response = await plugin.run_postprocess(response)
             except Exception as exc:

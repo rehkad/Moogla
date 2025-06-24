@@ -4,6 +4,8 @@ const loadingEl = document.getElementById('loading');
 const modelSelect = document.getElementById('model');
 const pluginContainer = document.getElementById('plugin-container');
 const fileInput = document.getElementById('file-input');
+const historyInput = document.getElementById('history-input');
+const downloadBtn = document.getElementById('download-history');
 const hintsContainer = document.getElementById('hints');
 const clearBtn = document.getElementById('clear-chat');
 const toggleDarkBtn = document.getElementById('toggle-dark');
@@ -27,18 +29,27 @@ function loadModels() {
     });
 }
 
-function loadPlugins() {
-    const saved = (localStorage.getItem('plugins') || '').split(',').filter(Boolean);
+async function loadPlugins() {
+    let active = [];
+    try {
+        const resp = await fetch('/plugins');
+        if (resp.ok) {
+            active = (await resp.json()).plugins;
+        }
+    } catch {}
     plugins.forEach(p => {
         const label = document.createElement('label');
         label.className = 'flex items-center space-x-1 text-sm';
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.value = p;
-        cb.checked = saved.includes(p);
-        cb.addEventListener('change', () => {
-            const selected = Array.from(pluginContainer.querySelectorAll('input:checked')).map(el => el.value);
-            localStorage.setItem('plugins', selected.join(','));
+        cb.checked = active.includes(p);
+        cb.addEventListener('change', async () => {
+            if (cb.checked) {
+                await fetch('/plugins', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:p})});
+            } else {
+                await fetch(`/plugins/${encodeURIComponent(p)}`, {method:'DELETE'});
+            }
         });
         label.appendChild(cb);
         label.appendChild(document.createTextNode(p));
@@ -153,6 +164,31 @@ fileInput.addEventListener('change', async () => {
     addMessage('user', `[Uploaded: ${file.name}]`);
     await sendMessage(text);
     fileInput.value = '';
+});
+
+downloadBtn.addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(history, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'chat-history.json';
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+historyInput.addEventListener('change', async () => {
+    const file = historyInput.files[0];
+    if (!file) return;
+    try {
+        const data = JSON.parse(await file.text());
+        if (Array.isArray(data)) {
+            history = data;
+            localStorage.setItem('chatHistory', JSON.stringify(history));
+            chatEl.innerHTML = '';
+            history.forEach(m => addMessage(m.role, m.content));
+        }
+    } catch {}
+    historyInput.value = '';
 });
 
 clearBtn.addEventListener('click', () => {
