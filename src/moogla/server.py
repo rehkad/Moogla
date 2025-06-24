@@ -37,7 +37,7 @@ def create_app(
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
     db_url: Optional[str] = None,
-    plugin_db: Optional[str] = None,
+    plugin_file: Optional[str] = None,
     jwt_secret: Optional[str] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
@@ -50,14 +50,12 @@ def create_app(
         rate_limit = settings.rate_limit
     redis_url = redis_url or settings.redis_url
     db_url = db_url or settings.db_url
-    plugin_db = plugin_db or settings.plugin_db
+    plugin_file = plugin_file or settings.plugin_file
     secret_key = jwt_secret or settings.jwt_secret
     algorithm = "HS256"
 
-    if plugin_db is None and db_url and db_url.startswith("sqlite:///"):
-        plugin_db = Path(db_url.replace("sqlite:///", ""))
-    if plugin_db:
-        plugins_config.set_plugin_db(str(plugin_db))
+    if plugin_file:
+        plugins_config.set_plugin_file(str(plugin_file))
 
     plugins = load_plugins(plugin_names)
 
@@ -281,7 +279,7 @@ def start_server(
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
     db_url: Optional[str] = None,
-    plugin_db: Optional[str] = None,
+    plugin_file: Optional[str] = None,
     jwt_secret: Optional[str] = None,
 ) -> None:
     """Run the HTTP server."""
@@ -294,7 +292,7 @@ def start_server(
         rate_limit=rate_limit,
         redis_url=redis_url,
         db_url=db_url,
-        plugin_db=plugin_db,
+        plugin_file=plugin_file,
         jwt_secret=jwt_secret,
     )
     uvicorn.run(app, host=host, port=port)

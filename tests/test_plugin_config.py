@@ -9,8 +9,8 @@ runner = CliRunner()
 
 
 def test_cli_plugin_management(tmp_path, monkeypatch):
-    db = tmp_path / "plugins.db"
-    monkeypatch.setenv("MOOGLA_PLUGIN_DB", str(db))
+    cfg = tmp_path / "plugins.yaml"
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
 
     result = runner.invoke(app, ["plugin", "add", "tests.dummy_plugin"])
     assert result.exit_code == 0
@@ -49,8 +49,8 @@ class DummyExecutor:
 
 
 def test_persisted_plugins_loaded(tmp_path, monkeypatch):
-    db = tmp_path / "plugins.db"
-    monkeypatch.setenv("MOOGLA_PLUGIN_DB", str(db))
+    cfg = tmp_path / "plugins.yaml"
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
     plugins_config.add_plugin("tests.dummy_plugin")
 
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
