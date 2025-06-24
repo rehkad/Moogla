@@ -36,3 +36,23 @@ async def test_missing_api_key(monkeypatch):
     ) as client:
         resp = await client.post("/v1/completions", json={"prompt": "abc"})
     assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_jwt_auth(monkeypatch, tmp_path):
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
+    db = tmp_path / "db.db"
+    app = create_app(server_api_key="secret", db_url=f"sqlite:///{db}")
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.post("/register", json={"username": "u", "password": "p"})
+        assert resp.status_code == 201
+        resp = await client.post("/login", json={"username": "u", "password": "p"})
+        token = resp.json()["access_token"]
+        resp = await client.post(
+            "/v1/completions",
+            json={"prompt": "abc"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200
