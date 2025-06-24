@@ -1,0 +1,6 @@
+# Example Moogla configuration file
+# Copy to config.toml and adjust as needed
+
+model = "gpt-3.5-turbo"
+# api_key = "sk-..."
+# api_base = "https://api.openai.com/v1"

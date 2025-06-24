@@ -2,6 +2,8 @@ from typing import List
 
 import typer
 
+from .config import load_config
+
 from .server import start_server
 
 app = typer.Typer(help="Moogla command line interface")
@@ -13,6 +15,9 @@ def serve(
     plugin: List[str] = typer.Option(
         None, '--plugin', '-p', help='Plugin module to load', show_default=False
     ),
+    config: str = typer.Option(
+        None, '--config', '-c', help='Path to configuration file', show_default=False
+    ),
 ):
     """Start the Moogla HTTP server.
 
@@ -22,7 +27,8 @@ def serve(
     port: TCP port to listen on.
     plugin: Optional plugin modules to initialize.
     """
-    start_server(host=host, port=port, plugin_names=plugin)
+    cfg = load_config(config)
+    start_server(host=host, port=port, plugin_names=plugin, config=cfg)
 
 
 @app.command()

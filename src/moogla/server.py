@@ -1,7 +1,5 @@
 from typing import List, Optional
 
-import os
-
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -11,10 +9,12 @@ import uvicorn
 
 from .plugins import Plugin, load_plugins
 from .executor import LLMExecutor
+from .config import Config, load_config
 
 
 def create_app(
     plugin_names: Optional[List[str]] = None,
+    config: Optional[Config] = None,
     model: Optional[str] = None,
     api_key: Optional[str] = None,
     api_base: Optional[str] = None,
@@ -22,11 +22,15 @@ def create_app(
     """Build the FastAPI application."""
     plugins = load_plugins(plugin_names)
 
-    model = model or os.getenv("MOOGLA_MODEL", "gpt-3.5-turbo")
-    api_key = api_key or os.getenv("OPENAI_API_KEY")
-    api_base = api_base or os.getenv("OPENAI_API_BASE")
+    cfg = config or load_config()
+    if model is not None:
+        cfg.model = model
+    if api_key is not None:
+        cfg.api_key = api_key
+    if api_base is not None:
+        cfg.api_base = api_base
 
-    executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
+    executor = LLMExecutor(model=cfg.model, api_key=cfg.api_key, api_base=cfg.api_base)
 
     app = FastAPI(title="Moogla API")
 
@@ -88,15 +92,22 @@ def start_server(
     host: str = "0.0.0.0",
     port: int = 11434,
     plugin_names: Optional[List[str]] = None,
+    config: Optional[Config] = None,
     model: Optional[str] = None,
     api_key: Optional[str] = None,
     api_base: Optional[str] = None,
 ) -> None:
     """Run the HTTP server."""
+    cfg = config or load_config()
+    if model is not None:
+        cfg.model = model
+    if api_key is not None:
+        cfg.api_key = api_key
+    if api_base is not None:
+        cfg.api_base = api_base
+
     app = create_app(
         plugin_names=plugin_names,
-        model=model,
-        api_key=api_key,
-        api_base=api_base,
+        config=cfg,
     )
     uvicorn.run(app, host=host, port=port)

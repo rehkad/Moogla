@@ -61,6 +61,20 @@ curl -X POST http://localhost:11434/v1/chat/completions \
   -d '{"messages": [{"role": "user", "content": "hello"}]}'
 ```
 
+### Configuration
+
+Settings can be stored in a `config.toml` file placed next to the
+application. A sample is provided as `config.example.toml`:
+
+```toml
+model = "gpt-3.5-turbo"
+# api_key = "sk-..."
+# api_base = "https://api.openai.com/v1"
+```
+
+Environment variables such as `MOOGLA_MODEL`, `OPENAI_API_KEY` and
+`OPENAI_API_BASE` override the values from the file.
+
 ## Development Setup
 
 The project uses [Typer](https://typer.tiangolo.com/) for the CLI and
