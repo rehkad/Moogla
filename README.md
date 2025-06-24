@@ -120,4 +120,6 @@ docker-compose up
 - Keep functions small and composable.
 - Write unit tests for new behavior in `tests/`.
 - Use type hints and docstrings.
+- Pull requests are checked by GitHub Actions.
+- Ensure `pytest`, `ruff` and `mypy` pass before pushing.
 
