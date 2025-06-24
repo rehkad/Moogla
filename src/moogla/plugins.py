@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 import logging
 from importlib import import_module
@@ -62,6 +63,17 @@ def load_plugins(names: Optional[List[str]]) -> List[Plugin]:
         if setup_func:
             try:
                 setup_func(settings)
+            except Exception as exc:  # pragma: no cover - pass through
+                logger.error("Failed to setup plugin '%s': %s", name, exc)
+                raise
+
+        setup_async = getattr(module, "setup_async", None)
+        if setup_async:
+            try:
+                if inspect.iscoroutinefunction(setup_async):
+                    asyncio.run(setup_async(settings))
+                else:
+                    setup_async(settings)
             except Exception as exc:  # pragma: no cover - pass through
                 logger.error("Failed to setup plugin '%s': %s", name, exc)
                 raise
