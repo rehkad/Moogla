@@ -60,5 +60,5 @@ def test_plugins_db_connection_error(tmp_path, monkeypatch):
         raise OSError("fail")
 
     monkeypatch.setattr("builtins.open", fail_open)
-    with pytest.raises(OSError):
+    with pytest.raises(RuntimeError):
         plugins_config.get_plugins()

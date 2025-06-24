@@ -27,20 +27,26 @@ def _load() -> Dict[str, Any]:
     path = _get_path()
     if not path.exists():
         return {}
-    with open(path, "r") as f:
-        if path.suffix in {".yaml", ".yml"}:
-            return yaml.safe_load(f) or {}
-        return json.load(f)
+    try:
+        with open(path, "r") as f:
+            if path.suffix in {".yaml", ".yml"}:
+                return yaml.safe_load(f) or {}
+            return json.load(f)
+    except (OSError, json.JSONDecodeError, yaml.YAMLError) as e:
+        raise RuntimeError(f"Failed to load plugin config: {e}") from e
 
 
 def _save(data: Dict[str, Any]) -> None:
     path = _get_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        if path.suffix in {".yaml", ".yml"}:
-            yaml.safe_dump(data, f)
-        else:
-            json.dump(data, f, indent=2)
+    try:
+        with open(path, "w") as f:
+            if path.suffix in {".yaml", ".yml"}:
+                yaml.safe_dump(data, f)
+            else:
+                json.dump(data, f, indent=2)
+    except OSError as e:
+        raise RuntimeError(f"Failed to save plugin config: {e}") from e
 
 
 def get_plugins() -> List[str]:

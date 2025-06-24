@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 from typer.testing import CliRunner
+from pathlib import Path
+import pytest
 
 from moogla import plugins_config, server
 from moogla.cli import app
@@ -77,4 +79,30 @@ def test_plugin_settings_used(tmp_path, monkeypatch):
     resp = client.post("/v1/completions", json={"prompt": "abc"})
     assert resp.status_code == 200
     assert resp.json()["choices"][0]["text"] == "cba??"
+
+
+def test_corrupted_file_raises_runtime_error(tmp_path, monkeypatch):
+    cfg = tmp_path / "plugins.yaml"
+    cfg.write_text("plugins: [")
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
+
+    with pytest.raises(RuntimeError):
+        plugins_config.get_plugins()
+
+
+def test_permission_error_raises_runtime_error(tmp_path, monkeypatch):
+    cfg = tmp_path / "plugins.yaml"
+    cfg.write_text("plugins: []")
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
+
+    real_open = open
+
+    def fake_open(path, mode="r", *args, **kwargs):
+        if Path(path) == cfg and "r" in mode:
+            raise PermissionError("no permission")
+        return real_open(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", fake_open)
+    with pytest.raises(RuntimeError):
+        plugins_config.get_plugins()
 
