@@ -139,5 +139,10 @@ class LLMExecutor:
                 max_tokens=max_tokens,
             )
             return response.choices[0].message.content
-        # fall back to thread pool for sync models
-        return await asyncio.to_thread(self.complete, prompt, max_tokens=max_tokens)
+
+        # ``llama_cpp`` exposes only synchronous APIs so local inference can
+        # block the event loop.  Run any non-async backends in a thread.
+        if self.llama or self.generator or self.client:
+            return await asyncio.to_thread(self.complete, prompt, max_tokens=max_tokens)
+
+        raise RuntimeError("No LLM backend configured")

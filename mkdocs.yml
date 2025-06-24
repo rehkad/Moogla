@@ -6,6 +6,7 @@ theme:
 nav:
   - Home: index.md
   - Setup: setup.md
+  - Local Models: local_models.md
   - Plugin Development: plugins.md
   - Authentication: authentication.md
   - Web UI: web_ui.md
