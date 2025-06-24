@@ -1,7 +1,7 @@
 import os
 import json
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 
 import yaml
 
@@ -43,14 +43,24 @@ def _save(data: Dict[str, Any]) -> None:
             json.dump(data, f, indent=2)
 
 
-def get_plugins() -> List[str]:
+def get_plugins() -> Tuple[List[str], Dict[str, Dict[str, Any]]]:
     data = _load()
     plugins = data.get("plugins")
     if isinstance(plugins, list):
-        return plugins
-    if isinstance(data, list):
-        return data
-    return []
+        names = plugins
+    elif isinstance(data, list):
+        names = data
+    else:
+        names = []
+
+    settings: Dict[str, Dict[str, Any]] = {}
+    raw_settings = data.get("settings")
+    if isinstance(raw_settings, dict):
+        for key, value in raw_settings.items():
+            if isinstance(value, dict):
+                settings[key] = value
+
+    return names, settings
 
 
 def add_plugin(name: str, **settings: Any) -> None:

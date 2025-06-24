@@ -47,7 +47,7 @@ def plugin_remove(name: str) -> None:
 @plugin_app.command("list")
 def plugin_list() -> None:
     """List configured plugins."""
-    names = plugins_config.get_plugins()
+    names, _ = plugins_config.get_plugins()
     if not names:
         typer.echo("No plugins configured")
     else:

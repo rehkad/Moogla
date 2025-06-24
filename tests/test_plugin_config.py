@@ -59,3 +59,21 @@ def test_persisted_plugins_loaded(tmp_path, monkeypatch):
     resp = client.post("/v1/completions", json={"prompt": "abc"})
     assert resp.status_code == 200
     assert resp.json()["choices"][0]["text"] == "!!CBA!!"
+
+
+def test_plugin_settings_reach_module(tmp_path, monkeypatch):
+    cfg = tmp_path / "plugins.yaml"
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
+    plugins_config.add_plugin("tests.settings_plugin", prefix="hi-", suffix="-bye")
+
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
+    app_instance = server.create_app()
+
+    import tests.settings_plugin as mod
+    assert mod.settings_received == {"prefix": "hi-", "suffix": "-bye"}
+
+    client = TestClient(app_instance)
+    resp = client.post("/v1/completions", json={"prompt": "abc"})
+    assert resp.status_code == 200
+    # Preprocess adds prefix, DummyExecutor reverses, postprocess adds suffix
+    assert resp.json()["choices"][0]["text"] == "cba-ih-bye"

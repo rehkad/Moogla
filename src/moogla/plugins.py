@@ -1,7 +1,7 @@
 from importlib import import_module
 import logging
 from types import ModuleType
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Dict, Any
 import inspect
 
 from . import plugins_config
@@ -41,17 +41,24 @@ class Plugin:
         return text
 
 
-def load_plugins(names: Optional[List[str]]) -> List[Plugin]:
+def load_plugins(names: Optional[List[str]], settings: Optional[Dict[str, Dict[str, Any]]] = None) -> List[Plugin]:
     """Import and initialize plugins from module names or configured store."""
     if not names:
-        names = plugins_config.get_plugins()
+        names, settings = plugins_config.get_plugins()
     plugins: List[Plugin] = []
+    settings = settings or {}
     for name in names or []:
         try:
             module = import_module(name)
         except Exception as exc:
             logger.error("Failed to import plugin '%s': %s", name, exc)
             raise ImportError(f"Cannot import plugin '{name}'") from exc
+        if hasattr(module, "init"):
+            try:
+                module.init(settings.get(name, {}))
+            except Exception as exc:
+                logger.error("Failed initializing plugin '%s': %s", name, exc)
+                raise
         plugins.append(Plugin(module))
 
     plugins.sort(key=lambda p: p.order)

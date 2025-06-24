@@ -67,7 +67,8 @@ def create_app(
     if plugin_file:
         plugins_config.set_plugin_file(str(plugin_file))
 
-    plugins = load_plugins(plugin_names)
+    _, stored_settings = plugins_config.get_plugins()
+    plugins = load_plugins(plugin_names, stored_settings)
 
     executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
 

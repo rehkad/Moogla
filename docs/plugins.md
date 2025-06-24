@@ -36,3 +36,17 @@ The file location can be customised with `--config`:
 ```bash
 moogla plugin --config /path/to/plugins.json add my_plugin
 ```
+
+Plugins can also define an optional `init` function which receives any
+stored configuration for the plugin. The settings are provided when the
+plugin module is imported:
+
+```python
+# my_plugin.py
+
+def init(settings: dict):
+    print("initialising with", settings)
+```
+
+Settings can be saved programmatically with `plugins_config.add_plugin`
+or by editing the configuration file directly.
