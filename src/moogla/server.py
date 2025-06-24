@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from pathlib import Path
 from typing import List, Optional
 from contextlib import asynccontextmanager
@@ -53,6 +54,15 @@ def create_app(
     plugin_file = plugin_file or settings.plugin_file
     secret_key = jwt_secret or settings.jwt_secret
     algorithm = "HS256"
+
+    if jwt_secret is None and "MOOGLA_JWT_SECRET" not in os.environ:
+        logger.warning(
+            "Generated ephemeral JWT secret. Set MOOGLA_JWT_SECRET to persist tokens."
+        )
+    if db_url == "sqlite:///:memory:":
+        logger.warning(
+            "Using in-memory SQLite database; user data will not persist."
+        )
 
     if plugin_file:
         plugins_config.set_plugin_file(str(plugin_file))
