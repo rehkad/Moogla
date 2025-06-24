@@ -21,6 +21,7 @@ class LLMExecutor:
         self.async_client = None
         self.generator = None
         self.llama = None
+        self.async_llama = None
 
         key = api_key
 
@@ -28,13 +29,20 @@ class LLMExecutor:
         if model_path.exists() or "/" in model:
             if model_path.suffix in {".gguf", ".ggml", ".bin"}:
                 try:
-                    from llama_cpp import Llama
+                    import llama_cpp  # type: ignore
                 except Exception as exc:  # pragma: no cover - optional dep
                     raise RuntimeError(
                         "llama-cpp-python required for GGUF models"
                     ) from exc
 
-                self.llama = Llama(model_path=str(model_path))
+                AsyncLlama = getattr(llama_cpp, "AsyncLlama", None)
+                Llama = getattr(llama_cpp, "Llama", None)
+                if AsyncLlama is not None:
+                    self.async_llama = AsyncLlama(model_path=str(model_path))
+                else:
+                    if Llama is None:
+                        raise RuntimeError("llama-cpp-python required for GGUF models")
+                    self.llama = Llama(model_path=str(model_path))
             else:
                 try:
                     from transformers import pipeline
@@ -177,6 +185,16 @@ class LLMExecutor:
                     yield delta
             return
 
+        if self.async_llama:
+            result = await self.async_llama(
+                prompt, max_tokens=max_tokens, stream=True
+            )
+            async for chunk in result:
+                text = chunk.get("choices", [{}])[0].get("text")
+                if text:
+                    yield text
+            return
+
         for token in self.stream(
             prompt,
             max_tokens=max_tokens,
@@ -210,8 +228,14 @@ class LLMExecutor:
             )
             return response.choices[0].message.content
 
-        # ``llama_cpp`` exposes only synchronous APIs so local inference can
-        # block the event loop.  Run any non-async backends in a thread.
+        if self.async_llama:
+            result = await self.async_llama(
+                prompt, max_tokens=max_tokens
+            )
+            return result["choices"][0]["text"]
+
+        # Some backends expose only synchronous APIs so local inference can
+        # block the event loop. Run them in a thread.
         if self.llama or self.generator or self.client:
             return await asyncio.to_thread(
                 self.complete,
