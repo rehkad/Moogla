@@ -56,12 +56,13 @@ if [[ $CREATE_VENV -eq 1 ]]; then
     source "$ENV_PATH/bin/activate"
 fi
 
-pip install -e .
 if [[ $INSTALL_DEV -eq 1 ]]; then
-    pip install pytest pre-commit
+    pip install -e .[dev]
     if command -v pre-commit >/dev/null 2>&1; then
         pre-commit install
     fi
+else
+    pip install -e .
 fi
 
 if [[ $RUN_TESTS -eq 1 ]]; then
