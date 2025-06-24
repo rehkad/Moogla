@@ -213,5 +213,22 @@ def pull(
     typer.echo(f"\nSaved to {dest}")
 
 
+@app.command()
+def models() -> None:
+    """List model files in the configured directory."""
+    settings = Settings()
+    model_dir = settings.model_dir
+    if not model_dir.is_dir():
+        typer.echo("No models found")
+        return
+
+    names = sorted(p.name for p in model_dir.iterdir() if p.is_file())
+    if not names:
+        typer.echo("No models found")
+    else:
+        for n in names:
+            typer.echo(n)
+
+
 if __name__ == "__main__":
     app()

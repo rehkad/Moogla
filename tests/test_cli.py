@@ -15,6 +15,7 @@ def test_help():
     assert result.exit_code == 0
     assert "serve" in result.output
     assert "pull" in result.output
+    assert "models" in result.output
 
 
 def test_serve_with_plugin(monkeypatch):
@@ -126,3 +127,17 @@ def test_pull_http_error(monkeypatch, tmp_path):
     assert result.exit_code == 1
     assert not (tmp_path / "x.bin").exists()
     assert "Failed to download" in result.output
+
+
+def test_models_lists_files(tmp_path, monkeypatch):
+    models_dir = tmp_path / ".cache" / "moogla" / "models"
+    models_dir.mkdir(parents=True)
+    (models_dir / "a.bin").write_text("hi")
+    (models_dir / "b.gguf").write_text("ok")
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    result = runner.invoke(app, ["models"])
+    assert result.exit_code == 0
+    assert "a.bin" in result.output
+    assert "b.gguf" in result.output
