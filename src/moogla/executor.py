@@ -3,7 +3,6 @@ from __future__ import annotations
 """Utilities for executing prompts against LLM providers."""
 
 from typing import Optional
-import os
 from pathlib import Path
 import asyncio
 
@@ -20,7 +19,7 @@ class LLMExecutor:
         self.generator = None
         self.llama = None
 
-        key = api_key or os.getenv("OPENAI_API_KEY")
+        key = api_key
 
         model_path = Path(model)
         if model_path.exists() or "/" in model:
