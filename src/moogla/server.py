@@ -3,12 +3,12 @@ from typing import List, Optional
 import os
 
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+
 from pathlib import Path
 import time
 from pydantic import BaseModel
 import uvicorn
-import logging
+
 
 from .plugins import Plugin, load_plugins
 from .executor import LLMExecutor
@@ -132,12 +132,28 @@ def create_app(
         if not req.messages:
             return {"choices": []}
         content = req.messages[-1].content
+        if req.stream:
+            async def event_stream():
+                reply = await apply_plugins(content)
+                for char in reply:
+                    yield json.dumps({"choices": [{"delta": {"content": char}}]}) + "\n"
+
+            return StreamingResponse(event_stream(), media_type="text/event-stream")
+
         reply = await apply_plugins(content)
         return {"choices": [{"message": {"role": "assistant", "content": reply}}]}
 
     @app.post("/v1/completions")
     async def completions(req: CompletionRequest):
         """Return a completion for the given prompt using the mock backend."""
+        if req.stream:
+            async def event_stream():
+                reply = await apply_plugins(req.prompt)
+                for char in reply:
+                    yield json.dumps({"choices": [{"delta": {"content": char}}]}) + "\n"
+
+            return StreamingResponse(event_stream(), media_type="text/event-stream")
+
         reply = await apply_plugins(req.prompt)
         return {"choices": [{"text": reply}]}
 

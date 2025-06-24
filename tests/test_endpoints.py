@@ -1,4 +1,5 @@
 import os
+import json
 import pytest
 import httpx
 from fastapi.testclient import TestClient
@@ -58,6 +59,38 @@ async def test_plugins(monkeypatch):
         )
     assert resp.status_code == 200
     assert resp.json()["choices"][0]["message"]["content"] == "!!OLLEH!!"
+
+
+@pytest.mark.asyncio
+async def test_chat_completion_stream(monkeypatch):
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
+    app = create_app()
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"messages": [{"role": "user", "content": "hello"}], "stream": True},
+        )
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/event-stream")
+    lines = [l for l in resp.text.splitlines() if l.strip()]
+    reply = "".join(json.loads(l)["choices"][0]["delta"]["content"] for l in lines)
+    assert reply == "olleh"
+
+
+@pytest.mark.asyncio
+async def test_completion_stream(monkeypatch):
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
+    app = create_app()
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/completions",
+            json={"prompt": "abc", "stream": True},
+        )
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/event-stream")
+    lines = [l for l in resp.text.splitlines() if l.strip()]
+    reply = "".join(json.loads(l)["choices"][0]["delta"]["content"] for l in lines)
+    assert reply == "cba"
 
 
 def test_root_endpoint():
