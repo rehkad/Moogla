@@ -90,6 +90,14 @@ return the modified value.
 A plugin can specify an integer `order` attribute to control execution order
 when multiple plugins are loaded. Lower numbers run first.
 
+Plugin information is stored in `~/.cache/moogla/plugins.yaml` by default.
+Use `--config` or the `MOOGLA_PLUGIN_FILE` environment variable to point
+to a different location:
+
+```bash
+MOOGLA_PLUGIN_FILE=/opt/plugins.json moogla plugin list
+```
+
 ### Async Limitations
 
 Local models loaded through `llama-cpp-python` do not expose an asynchronous

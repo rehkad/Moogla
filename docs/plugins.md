@@ -31,8 +31,11 @@ moogla plugin list
 moogla plugin remove my_plugin
 ```
 
-The file location can be customised with `--config`:
+The file location can be customised with the `--config` option or the
+`MOOGLA_PLUGIN_FILE` environment variable. Both override the default
+path for all plugin commands:
 
 ```bash
-moogla plugin --config /path/to/plugins.json add my_plugin
+export MOOGLA_PLUGIN_FILE=/path/to/plugins.json
+moogla plugin add my_plugin
 ```
