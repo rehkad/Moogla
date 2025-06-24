@@ -47,6 +47,20 @@ def serve(
     plugin: List[str] = typer.Option(
         None, "--plugin", "-p", help="Plugin module to load", show_default=False
     ),
+    model: str = typer.Option(
+        None,
+        "--model",
+        help="Model path or identifier",
+        envvar="MOOGLA_MODEL",
+        show_default=False,
+    ),
+    api_base: str = typer.Option(
+        None,
+        "--api-base",
+        help="Base URL for remote API",
+        envvar="OPENAI_API_BASE",
+        show_default=False,
+    ),
     api_key: str = typer.Option(
         None,
         "--api-key",
@@ -89,6 +103,8 @@ def serve(
         host=host,
         port=port,
         plugin_names=plugin,
+        model=model,
+        api_base=api_base,
         server_api_key=api_key,
         rate_limit=rate_limit,
         redis_url=redis_url,

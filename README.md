@@ -51,7 +51,13 @@ Pull a model and start the server with a custom plugin:
 
 ```bash
 moogla pull codellama:13b
-moogla serve --plugin tests.dummy_plugin
+moogla serve --model path/to/codellama-13b.gguf --plugin tests.dummy_plugin
+```
+
+To use a Hugging Face model ID instead of a file path:
+
+```bash
+moogla serve --model mistralai/Mistral-7B-Instruct-v0.2
 ```
 
 You can then query the chat completion endpoint:

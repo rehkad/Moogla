@@ -23,3 +23,21 @@ def test_complete(monkeypatch):
     executor = LLMExecutor(model="gpt-3.5-turbo")
     result = executor.complete("hello")
     assert result == "hi"
+
+
+def test_hf_backend(monkeypatch):
+    import sys
+
+    class DummyPipeline:
+        def __call__(self, text, max_new_tokens=16):
+            return [{"generated_text": text[::-1]}]
+
+    monkeypatch.setitem(
+        sys.modules,
+        "transformers",
+        types.SimpleNamespace(pipeline=lambda *a, **k: DummyPipeline()),
+    )
+
+    executor = LLMExecutor(model="some/model")
+    result = executor.complete("abc")
+    assert result == "cba"
