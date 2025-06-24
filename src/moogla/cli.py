@@ -68,6 +68,13 @@ def serve(
         envvar="MOOGLA_REDIS_URL",
         show_default=False,
     ),
+    db_url: str = typer.Option(
+        None,
+        "--db-url",
+        help="Database connection string",
+        envvar="MOOGLA_DB_URL",
+        show_default=False,
+    ),
 ):
     """Start the Moogla HTTP server.
 
@@ -76,6 +83,7 @@ def serve(
     host: IP or hostname to bind.
     port: TCP port to listen on.
     plugin: Optional plugin modules to initialize.
+    db_url: Optional database connection string.
     """
     start_server(
         host=host,
@@ -84,6 +92,7 @@ def serve(
         server_api_key=api_key,
         rate_limit=rate_limit,
         redis_url=redis_url,
+        db_url=db_url,
     )
 
 

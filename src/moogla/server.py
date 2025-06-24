@@ -27,6 +27,7 @@ def create_app(
     server_api_key: Optional[str] = None,
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
+    db_url: Optional[str] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
     plugins = load_plugins(plugin_names)
@@ -67,6 +68,7 @@ def create_app(
         await FastAPILimiter.close()
 
     app = FastAPI(title="Moogla API", dependencies=dependencies, lifespan=lifespan)
+    app.state.db_url = db_url
 
     static_dir = Path(__file__).resolve().parent / "web"
     if static_dir.exists():
@@ -156,6 +158,7 @@ def start_server(
     server_api_key: Optional[str] = None,
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
+    db_url: Optional[str] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -166,5 +169,6 @@ def start_server(
         server_api_key=server_api_key,
         rate_limit=rate_limit,
         redis_url=redis_url,
+        db_url=db_url,
     )
     uvicorn.run(app, host=host, port=port)
