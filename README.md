@@ -90,6 +90,13 @@ Then navigate to [http://localhost:11434/app](http://localhost:11434/app).
 Double‑click a chat bubble to copy its contents and use the dark‑mode toggle in
 the header to switch themes.
 
+### API Authentication
+
+Set `MOOGLA_API_KEY` to enable simple header based authentication. Requests must
+include an `X-API-Key` header matching the configured value. Optionally set
+`MOOGLA_RATE_LIMIT` to limit the number of requests per minute from a single IP.
+These values can also be passed to `create_app` or `moogla serve`.
+
 ## Running with Docker
 
 Build the image and start the server:
