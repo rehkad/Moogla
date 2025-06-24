@@ -32,7 +32,13 @@ def test_preprocess_exception_results_in_500(monkeypatch):
     monkeypatch.setattr("moogla.server.LLMExecutor", lambda *a, **kw: DummyExecutor())
     app = create_app(['error_pre_plugin'])
     client = TestClient(app, raise_server_exceptions=False)
-    resp = client.post('/v1/completions', json={'prompt': 'abc'})
+    client.post('/register', json={'username': 'u', 'password': 'p'})
+    token = client.post(
+        '/login',
+        data={'username': 'u', 'password': 'p', 'grant_type': 'password'},
+        headers={'Content-Type': 'application/x-www-form-urlencoded'}
+    ).json()['access_token']
+    resp = client.post('/v1/completions', json={'prompt': 'abc'}, headers={'Authorization': f'Bearer {token}'})
     assert resp.status_code == 500
     assert resp.json()["detail"] == "Plugin error"
     sys.modules.pop('error_pre_plugin', None)
@@ -49,7 +55,13 @@ def test_postprocess_exception_results_in_500(monkeypatch):
     monkeypatch.setattr("moogla.server.LLMExecutor", lambda *a, **kw: DummyExecutor())
     app = create_app(['error_post_plugin'])
     client = TestClient(app, raise_server_exceptions=False)
-    resp = client.post('/v1/completions', json={'prompt': 'abc'})
+    client.post('/register', json={'username': 'u', 'password': 'p'})
+    token = client.post(
+        '/login',
+        data={'username': 'u', 'password': 'p', 'grant_type': 'password'},
+        headers={'Content-Type': 'application/x-www-form-urlencoded'}
+    ).json()['access_token']
+    resp = client.post('/v1/completions', json={'prompt': 'abc'}, headers={'Authorization': f'Bearer {token}'})
     assert resp.status_code == 500
     assert resp.json()["detail"] == "Plugin error"
     sys.modules.pop('error_post_plugin', None)

@@ -18,16 +18,28 @@ class DummyExecutor:
         return prompt[::-1]
 
 
+async def get_token(client):
+    await client.post("/register", json={"username": "u", "password": "p"})
+    resp = await client.post(
+        "/login",
+        data={"username": "u", "password": "p", "grant_type": "password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    return resp.json()["access_token"]
+
+
 @pytest.mark.asyncio
-async def test_chat_completion(monkeypatch):
+async def test_chat_completion(monkeypatch, tmp_path):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
-    app = create_app()
+    app = create_app(db_url=f"sqlite:///{tmp_path}/db.db")
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://test"
     ) as client:
+        token = await get_token(client)
         resp = await client.post(
             "/v1/chat/completions",
             json={"messages": [{"role": "user", "content": "hello"}]},
+            headers={"Authorization": f"Bearer {token}"},
         )
     assert resp.status_code == 200
     data = resp.json()
@@ -35,40 +47,49 @@ async def test_chat_completion(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_completion_endpoint(monkeypatch):
+async def test_completion_endpoint(monkeypatch, tmp_path):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
-    app = create_app()
+    app = create_app(db_url=f"sqlite:///{tmp_path}/db.db")
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://test"
     ) as client:
-        resp = await client.post("/v1/completions", json={"prompt": "abc"})
+        token = await get_token(client)
+        resp = await client.post(
+            "/v1/completions",
+            json={"prompt": "abc"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
     assert resp.status_code == 200
     assert resp.json()["choices"][0]["text"] == "cba"
 
 
 @pytest.mark.asyncio
-async def test_plugins(monkeypatch):
+async def test_plugins(monkeypatch, tmp_path):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
-    app = create_app(["tests.dummy_plugin"])
+    app = create_app(["tests.dummy_plugin"], db_url=f"sqlite:///{tmp_path}/db.db")
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://test"
     ) as client:
+        token = await get_token(client)
         resp = await client.post(
             "/v1/chat/completions",
             json={"messages": [{"role": "user", "content": "hello"}]},
+            headers={"Authorization": f"Bearer {token}"},
         )
     assert resp.status_code == 200
     assert resp.json()["choices"][0]["message"]["content"] == "!!OLLEH!!"
 
 
 @pytest.mark.asyncio
-async def test_chat_completion_stream(monkeypatch):
+async def test_chat_completion_stream(monkeypatch, tmp_path):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
-    app = create_app()
-    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+    app = create_app(db_url=f"sqlite:///{tmp_path}/db.db")
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        token = await get_token(client)
         resp = await client.post(
             "/v1/chat/completions",
             json={"messages": [{"role": "user", "content": "hello"}], "stream": True},
+            headers={"Authorization": f"Bearer {token}"},
         )
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/event-stream")
@@ -78,13 +99,15 @@ async def test_chat_completion_stream(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_completion_stream(monkeypatch):
+async def test_completion_stream(monkeypatch, tmp_path):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
-    app = create_app()
-    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+    app = create_app(db_url=f"sqlite:///{tmp_path}/db.db")
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        token = await get_token(client)
         resp = await client.post(
             "/v1/completions",
             json={"prompt": "abc", "stream": True},
+            headers={"Authorization": f"Bearer {token}"},
         )
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/event-stream")
@@ -93,8 +116,8 @@ async def test_completion_stream(monkeypatch):
     assert reply == "cba"
 
 
-def test_root_endpoint():
-    app = create_app()
+def test_root_endpoint(tmp_path):
+    app = create_app(db_url=f"sqlite:///{tmp_path}/db.db")
     client = TestClient(app)
     resp = client.get("/")
     assert resp.status_code == 200

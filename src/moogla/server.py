@@ -7,12 +7,14 @@ from typing import List, Optional
 
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .executor import LLMExecutor
 from .plugins import load_plugins
+from . import auth
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,7 @@ def create_app(
     api_base: Optional[str] = None,
     server_api_key: Optional[str] = None,
     rate_limit: Optional[int] = None,
+    db_url: Optional[str] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
     plugins = load_plugins(plugin_names)
@@ -37,6 +40,9 @@ def create_app(
         rate_limit = int(env_limit) if env_limit else None
 
     executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
+
+    auth.init(db_url or "sqlite:///./users.db")
+    auth.create_db_and_tables()
 
     dependencies = []
 
@@ -98,6 +104,25 @@ def create_app(
         """Return a simple heartbeat response for monitoring."""
         return {"status": "ok"}
 
+    class UserIn(BaseModel):
+        username: str
+        password: str
+
+    @app.post("/register")
+    def register(user: UserIn):
+        if auth.get_user(user.username):
+            raise HTTPException(status_code=400, detail="User exists")
+        auth.create_user(user.username, user.password)
+        return {"status": "created"}
+
+    @app.post("/login")
+    def login(form_data: OAuth2PasswordRequestForm = Depends()):
+        user = auth.authenticate_user(form_data.username, form_data.password)
+        if not user:
+            raise HTTPException(status_code=400, detail="Invalid credentials")
+        token = auth.create_access_token({"sub": user.username})
+        return {"access_token": token, "token_type": "bearer"}
+
     class Message(BaseModel):
         role: str
         content: str
@@ -128,7 +153,9 @@ def create_app(
         return response
 
     @app.post("/v1/chat/completions")
-    async def chat_completions(req: ChatRequest):
+    async def chat_completions(
+        req: ChatRequest, user: auth.User = Depends(auth.get_current_user)
+    ):
         """Handle Chat API calls and return a reversed assistant reply."""
         if not req.messages:
             return {"choices": []}
@@ -145,7 +172,9 @@ def create_app(
         return {"choices": [{"message": {"role": "assistant", "content": reply}}]}
 
     @app.post("/v1/completions")
-    async def completions(req: CompletionRequest):
+    async def completions(
+        req: CompletionRequest, user: auth.User = Depends(auth.get_current_user)
+    ):
         """Return a completion for the given prompt using the mock backend."""
         if req.stream:
             async def event_stream():
@@ -170,6 +199,7 @@ def start_server(
     api_base: Optional[str] = None,
     server_api_key: Optional[str] = None,
     rate_limit: Optional[int] = None,
+    db_url: Optional[str] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -179,5 +209,6 @@ def start_server(
         api_base=api_base,
         server_api_key=server_api_key,
         rate_limit=rate_limit,
+        db_url=db_url,
     )
     uvicorn.run(app, host=host, port=port)
