@@ -162,6 +162,9 @@ Full documentation is available on GitHub Pages and can be built locally with:
 mkdocs serve
 ```
 
+See [docs/deployment.md](docs/deployment.md) for Docker and Kubernetes
+instructions, HTTPS configuration and security recommendations.
+
 
 
 ## Contributing Guidelines

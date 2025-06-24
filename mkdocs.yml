@@ -10,3 +10,4 @@ nav:
   - Plugin Development: plugins.md
   - Authentication: authentication.md
   - Web UI: web_ui.md
+  - Deployment: deployment.md
