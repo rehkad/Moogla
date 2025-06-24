@@ -18,6 +18,7 @@ def create_app(
     model: Optional[str] = None,
     api_key: Optional[str] = None,
     api_base: Optional[str] = None,
+    cache_size: Optional[int] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
     plugins = load_plugins(plugin_names)
@@ -26,7 +27,16 @@ def create_app(
     api_key = api_key or os.getenv("OPENAI_API_KEY")
     api_base = api_base or os.getenv("OPENAI_API_BASE")
 
-    executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
+    if cache_size is None:
+        cache_env = os.getenv("MOOGLA_CACHE_SIZE")
+        cache_size = int(cache_env) if cache_env else None
+
+    executor = LLMExecutor(
+        model=model,
+        api_key=api_key,
+        api_base=api_base,
+        cache_size=cache_size,
+    )
 
     app = FastAPI(title="Moogla API")
 
@@ -91,6 +101,7 @@ def start_server(
     model: Optional[str] = None,
     api_key: Optional[str] = None,
     api_base: Optional[str] = None,
+    cache_size: Optional[int] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -98,5 +109,6 @@ def start_server(
         model=model,
         api_key=api_key,
         api_base=api_base,
+        cache_size=cache_size,
     )
     uvicorn.run(app, host=host, port=port)

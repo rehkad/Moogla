@@ -13,6 +13,12 @@ def serve(
     plugin: List[str] = typer.Option(
         None, '--plugin', '-p', help='Plugin module to load', show_default=False
     ),
+    cache_size: int = typer.Option(
+        None,
+        '--cache-size',
+        help='Maximum number of prompts to cache',
+        show_default=False,
+    ),
 ):
     """Start the Moogla HTTP server.
 
@@ -21,8 +27,9 @@ def serve(
     host: IP or hostname to bind.
     port: TCP port to listen on.
     plugin: Optional plugin modules to initialize.
+    cache_size: Size of the completion cache.
     """
-    start_server(host=host, port=port, plugin_names=plugin)
+    start_server(host=host, port=port, plugin_names=plugin, cache_size=cache_size)
 
 
 @app.command()
