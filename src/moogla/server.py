@@ -1,12 +1,59 @@
+from typing import List, Optional
+
 from fastapi import FastAPI
+from pydantic import BaseModel
 import uvicorn
 
-app = FastAPI(title="Moogla API")
+from .plugins import Plugin, load_plugins
 
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
 
-def start_server(host: str = "0.0.0.0", port: int = 11434) -> None:
+def create_app(plugin_names: Optional[List[str]] = None) -> FastAPI:
+    """Build the FastAPI application."""
+    plugins = load_plugins(plugin_names)
+
+    app = FastAPI(title="Moogla API")
+
+    @app.get("/health")
+    def health_check():
+        return {"status": "ok"}
+
+    class Message(BaseModel):
+        role: str
+        content: str
+
+    class ChatRequest(BaseModel):
+        messages: List[Message]
+        stream: bool = False
+
+    class CompletionRequest(BaseModel):
+        prompt: str
+        stream: bool = False
+
+    def apply_plugins(text: str) -> str:
+        for plugin in plugins:
+            text = plugin.run_preprocess(text)
+        response = text[::-1]  # mock generation
+        for plugin in plugins:
+            response = plugin.run_postprocess(response)
+        return response
+
+    @app.post("/v1/chat/completions")
+    def chat_completions(req: ChatRequest):
+        if not req.messages:
+            return {"choices": []}
+        content = req.messages[-1].content
+        reply = apply_plugins(content)
+        return {"choices": [{"message": {"role": "assistant", "content": reply}}]}
+
+    @app.post("/v1/completions")
+    def completions(req: CompletionRequest):
+        reply = apply_plugins(req.prompt)
+        return {"choices": [{"text": reply}]}
+
+    return app
+
+
+def start_server(host: str = "0.0.0.0", port: int = 11434, plugin_names: Optional[List[str]] = None) -> None:
     """Run the HTTP server."""
+    app = create_app(plugin_names)
     uvicorn.run(app, host=host, port=port)

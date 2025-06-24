@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
-from moogla.server import app
+from moogla.server import create_app
 
-client = TestClient(app)
+client = TestClient(create_app())
 
 def test_health_check():
     resp = client.get('/health')

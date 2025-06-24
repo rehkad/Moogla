@@ -34,6 +34,22 @@ observable and developer friendly.
    moogla --help
    ```
 
+### Example Usage
+
+Pull a model and start the server with a custom plugin:
+
+```bash
+moogla pull codellama:13b
+moogla serve --plugin tests.dummy_plugin
+```
+
+You can then query the chat completion endpoint:
+
+```bash
+curl -X POST http://localhost:11434/v1/chat/completions \
+  -d '{"messages": [{"role": "user", "content": "hello"}]}'
+```
+
 ## Contributing Guidelines
 
 - Use the `src` layout for all packages and modules.
