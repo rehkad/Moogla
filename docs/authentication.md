@@ -13,3 +13,9 @@ authentication. After registration, send the returned token in an
 
 Rate limiting can be enabled with `MOOGLA_RATE_LIMIT` and a Redis
 connection via `MOOGLA_REDIS_URL`.
+
+Set `MOOGLA_ENV=production` on deployments and provide a `MOOGLA_JWT_SECRET`
+value to sign tokens. In development mode a default secret is used.
+
+Cross origin requests can be allowed by setting `MOOGLA_CORS_ORIGINS` to a
+comma separated list of origins.

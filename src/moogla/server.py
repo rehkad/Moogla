@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 from fastapi.responses import FileResponse, StreamingResponse
@@ -34,6 +35,7 @@ def create_app(
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
     db_url: Optional[str] = None,
+    cors_origins: Optional[List[str]] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
     if db_url:
@@ -49,12 +51,23 @@ def create_app(
         rate_limit = int(env_limit) if env_limit else None
     redis_url = redis_url or os.getenv("MOOGLA_REDIS_URL", "redis://localhost:6379")
 
+    if cors_origins is None:
+        env_origins = os.getenv("MOOGLA_CORS_ORIGINS")
+        if env_origins:
+            cors_origins = [o.strip() for o in env_origins.split(",")]
+        else:
+            cors_origins = ["*"]
+
     executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
 
     engine = create_engine(db_url or "sqlite:///:memory:")
     SQLModel.metadata.create_all(engine)
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    secret_key = os.getenv("MOOGLA_JWT_SECRET", "secret")
+    env = os.getenv("MOOGLA_ENV", "development")
+    secret_key = os.getenv("MOOGLA_JWT_SECRET")
+    if env == "production" and not secret_key:
+        raise RuntimeError("MOOGLA_JWT_SECRET must be set in production")
+    secret_key = secret_key or "secret"
     algorithm = "HS256"
 
     dependencies = []
@@ -97,6 +110,14 @@ def create_app(
         await FastAPILimiter.close()
 
     app = FastAPI(title="Moogla API", dependencies=dependencies, lifespan=lifespan)
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        allow_credentials=True,
+    )
     app.state.db_url = db_url
     app.state.engine = engine
     app.state.pwd_context = pwd_context
@@ -125,10 +146,15 @@ def create_app(
     @app.post("/register", status_code=201)
     def register(creds: Credentials):
         with Session(engine) as session:
-            existing = session.exec(select(User).where(User.username == creds.username)).first()
+            existing = session.exec(
+                select(User).where(User.username == creds.username)
+            ).first()
             if existing:
                 raise HTTPException(status_code=400, detail="User exists")
-            user = User(username=creds.username, hashed_password=pwd_context.hash(creds.password))
+            user = User(
+                username=creds.username,
+                hashed_password=pwd_context.hash(creds.password),
+            )
             session.add(user)
             session.commit()
             session.refresh(user)
@@ -137,10 +163,15 @@ def create_app(
     @app.post("/login")
     def login(creds: Credentials):
         with Session(engine) as session:
-            user = session.exec(select(User).where(User.username == creds.username)).first()
+            user = session.exec(
+                select(User).where(User.username == creds.username)
+            ).first()
             if not user or not pwd_context.verify(creds.password, user.hashed_password):
                 raise HTTPException(status_code=401, detail="Invalid credentials")
-        payload = {"sub": str(user.id), "exp": datetime.utcnow() + timedelta(minutes=30)}
+        payload = {
+            "sub": str(user.id),
+            "exp": datetime.utcnow() + timedelta(minutes=30),
+        }
         token = jwt.encode(payload, secret_key, algorithm=algorithm)
         return {"access_token": token, "token_type": "bearer"}
 
@@ -182,6 +213,7 @@ def create_app(
             return {"choices": []}
         content = req.messages[-1].content
         if req.stream:
+
             async def event_stream():
                 reply = await apply_plugins(content)
                 for char in reply:
@@ -196,6 +228,7 @@ def create_app(
     async def completions(req: CompletionRequest):
         """Return a completion for the given prompt using the mock backend."""
         if req.stream:
+
             async def event_stream():
                 reply = await apply_plugins(req.prompt)
                 for char in reply:
@@ -220,6 +253,7 @@ def start_server(
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
     db_url: Optional[str] = None,
+    cors_origins: Optional[List[str]] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -231,5 +265,6 @@ def start_server(
         rate_limit=rate_limit,
         redis_url=redis_url,
         db_url=db_url,
+        cors_origins=cors_origins,
     )
     uvicorn.run(app, host=host, port=port)

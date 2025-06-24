@@ -122,6 +122,10 @@ Include this token in an `Authorization: Bearer <token>` header when calling the
 LLM routes. Authentication support relies on the `SQLModel`, `passlib` and
 `python-jose` packages.
 
+Set `MOOGLA_ENV=production` and provide `MOOGLA_JWT_SECRET` to configure a
+persistent signing key. Cross origin requests can be allowed by specifying
+origins in `MOOGLA_CORS_ORIGINS`.
+
 ## Running with Docker
 
 Build the image and start the server:
