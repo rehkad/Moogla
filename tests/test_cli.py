@@ -26,7 +26,16 @@ def test_serve_with_plugin(monkeypatch):
             self.content = content
             self.chat = types.SimpleNamespace(completions=self)
 
-        def create(self, model, messages, max_tokens):
+        def create(
+            self,
+            model,
+            messages,
+            max_tokens,
+            *,
+            temperature=None,
+            top_p=None,
+            stream=False,
+        ):
             return types.SimpleNamespace(
                 choices=[
                     types.SimpleNamespace(
@@ -41,10 +50,22 @@ def test_serve_with_plugin(monkeypatch):
     )
 
     class DummyExecutor:
-        async def acomplete(self, prompt: str, max_tokens: int = 16) -> str:
+        async def acomplete(
+            self,
+            prompt: str,
+            max_tokens: int | None = None,
+            temperature: float | None = None,
+            top_p: float | None = None,
+        ) -> str:
             return prompt[::-1]
 
-        async def astream(self, prompt: str, max_tokens: int = 16):
+        async def astream(
+            self,
+            prompt: str,
+            max_tokens: int | None = None,
+            temperature: float | None = None,
+            top_p: float | None = None,
+        ):
             text = prompt[::-1]
             for i in range(0, len(text), 2):
                 yield text[i : i + 2]

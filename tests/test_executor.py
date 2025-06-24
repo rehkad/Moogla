@@ -11,7 +11,16 @@ class DummyClient:
         self.content = content
         self.chat = types.SimpleNamespace(completions=self)
 
-    def create(self, model, messages, max_tokens):
+    def create(
+        self,
+        model,
+        messages,
+        max_tokens,
+        *,
+        temperature=None,
+        top_p=None,
+        stream=False,
+    ):
         return types.SimpleNamespace(
             choices=[types.SimpleNamespace(message=types.SimpleNamespace(content=self.content))]
         )
@@ -70,16 +79,48 @@ async def test_astream(monkeypatch):
             return types.SimpleNamespace(choices=[types.SimpleNamespace(delta=types.SimpleNamespace(content=ch))])
 
     class StreamClient(DummyClient):
-        def create(self, model, messages, max_tokens, stream=False):
+        def create(
+            self,
+            model,
+            messages,
+            max_tokens,
+            *,
+            temperature=None,
+            top_p=None,
+            stream=False,
+        ):
             if stream:
                 return DummyStream(self.content)
-            return super().create(model, messages, max_tokens)
+            return super().create(
+                model,
+                messages,
+                max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                stream=stream,
+            )
 
     class AsyncStreamClient(StreamClient):
-        async def create(self, model, messages, max_tokens, stream=False):
+        async def create(
+            self,
+            model,
+            messages,
+            max_tokens,
+            *,
+            temperature=None,
+            top_p=None,
+            stream=False,
+        ):
             if stream:
                 return DummyAsyncStream(self.content)
-            return super().create(model, messages, max_tokens)
+            return super().create(
+                model,
+                messages,
+                max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                stream=stream,
+            )
 
     dummy = StreamClient("hi")
     adummy = AsyncStreamClient("hi")

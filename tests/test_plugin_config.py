@@ -27,10 +27,22 @@ def test_cli_plugin_management(tmp_path, monkeypatch):
 
 
 class DummyExecutor:
-    async def acomplete(self, prompt: str, max_tokens: int = 16) -> str:
+    async def acomplete(
+        self,
+        prompt: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ) -> str:
         return prompt[::-1]
 
-    async def astream(self, prompt: str, max_tokens: int = 16):
+    async def astream(
+        self,
+        prompt: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ):
         text = prompt[::-1]
         for i in range(0, len(text), 2):
             yield text[i : i + 2]

@@ -11,13 +11,49 @@ os.environ.setdefault("OPENAI_API_KEY", "test-key")
 
 
 class DummyExecutor:
-    def complete(self, prompt: str, max_tokens: int = 16) -> str:
+    def __init__(self) -> None:
+        self.last = {}
+
+    def complete(
+        self,
+        prompt: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ) -> str:
+        self.last = {
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+        }
         return prompt[::-1]
 
-    async def acomplete(self, prompt: str, max_tokens: int = 16) -> str:
+    async def acomplete(
+        self,
+        prompt: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ) -> str:
+        self.last = {
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+        }
         return prompt[::-1]
 
-    async def astream(self, prompt: str, max_tokens: int = 16):
+    async def astream(
+        self,
+        prompt: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ):
+        self.last = {
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+        }
         text = prompt[::-1]
         for i in range(0, len(text), 2):
             yield text[i : i + 2]
@@ -100,6 +136,26 @@ async def test_completion_stream(monkeypatch):
     lines = [l for l in resp.text.splitlines() if l.strip()]
     reply = "".join(json.loads(l)["choices"][0]["delta"]["content"] for l in lines)
     assert reply == "cba"
+
+
+@pytest.mark.asyncio
+async def test_option_forwarding(monkeypatch):
+    dummy = DummyExecutor()
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: dummy)
+    app = create_app()
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        await client.post(
+            "/v1/completions",
+            json={
+                "prompt": "abc",
+                "max_tokens": 5,
+                "temperature": 0.5,
+                "top_p": 0.9,
+            },
+        )
+    assert dummy.last == {"max_tokens": 5, "temperature": 0.5, "top_p": 0.9}
 
 
 def test_root_endpoint():

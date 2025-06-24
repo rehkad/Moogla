@@ -42,13 +42,28 @@ class LLMExecutor:
             self.client = openai.OpenAI(api_key=key, base_url=api_base)
             self.async_client = openai.AsyncOpenAI(api_key=key, base_url=api_base)
 
-    def complete(self, prompt: str, *, max_tokens: int = 16) -> str:
+    def complete(
+        self,
+        prompt: str,
+        *,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ) -> str:
         """Return a completion for the given prompt."""
+        if max_tokens is None:
+            max_tokens = 16
+        if temperature is None:
+            temperature = 1.0
+        if top_p is None:
+            top_p = 1.0
         if self.client:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
             )
             return response.choices[0].message.content
         if self.generator:
@@ -59,13 +74,28 @@ class LLMExecutor:
             return result["choices"][0]["text"]
         raise RuntimeError("No LLM backend configured")
 
-    def stream(self, prompt: str, *, max_tokens: int = 16):
+    def stream(
+        self,
+        prompt: str,
+        *,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ):
         """Yield completion tokens for the given prompt."""
+        if max_tokens is None:
+            max_tokens = 16
+        if temperature is None:
+            temperature = 1.0
+        if top_p is None:
+            top_p = 1.0
         if self.client:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
                 stream=True,
             )
             for chunk in response:
@@ -112,13 +142,28 @@ class LLMExecutor:
 
         raise RuntimeError("No LLM backend configured")
 
-    async def astream(self, prompt: str, *, max_tokens: int = 16):
+    async def astream(
+        self,
+        prompt: str,
+        *,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ):
         """Asynchronously yield completion tokens for the prompt."""
+        if max_tokens is None:
+            max_tokens = 16
+        if temperature is None:
+            temperature = 1.0
+        if top_p is None:
+            top_p = 1.0
         if self.async_client:
             response = await self.async_client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
                 stream=True,
             )
             async for chunk in response:
@@ -127,22 +172,48 @@ class LLMExecutor:
                     yield delta
             return
 
-        for token in self.stream(prompt, max_tokens=max_tokens):
+        for token in self.stream(
+            prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p,
+        ):
             yield token
 
-    async def acomplete(self, prompt: str, *, max_tokens: int = 16) -> str:
+    async def acomplete(
+        self,
+        prompt: str,
+        *,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ) -> str:
         """Asynchronously return a completion for the given prompt."""
+        if max_tokens is None:
+            max_tokens = 16
+        if temperature is None:
+            temperature = 1.0
+        if top_p is None:
+            top_p = 1.0
         if self.async_client:
             response = await self.async_client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
             )
             return response.choices[0].message.content
 
         # ``llama_cpp`` exposes only synchronous APIs so local inference can
         # block the event loop.  Run any non-async backends in a thread.
         if self.llama or self.generator or self.client:
-            return await asyncio.to_thread(self.complete, prompt, max_tokens=max_tokens)
+            return await asyncio.to_thread(
+                self.complete,
+                prompt,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+            )
 
         raise RuntimeError("No LLM backend configured")
