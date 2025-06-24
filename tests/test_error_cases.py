@@ -1,9 +1,10 @@
 import asyncio
 import os
+
 import httpx
 import pytest
 
-from moogla import server, plugins_config
+from moogla import plugins_config, server
 
 
 class DummyExecutor:
@@ -30,7 +31,10 @@ class DummyExecutor:
 async def test_concurrent_requests(monkeypatch):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
     app = server.create_app()
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+
         async def call(n: int):
             resp = await client.post("/v1/completions", json={"prompt": str(n)})
             assert resp.status_code == 200

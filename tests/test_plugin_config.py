@@ -1,9 +1,8 @@
-from typer.testing import CliRunner
-import httpx
 from fastapi.testclient import TestClient
+from typer.testing import CliRunner
 
+from moogla import plugins_config, server
 from moogla.cli import app
-from moogla import server, plugins_config
 
 runner = CliRunner()
 

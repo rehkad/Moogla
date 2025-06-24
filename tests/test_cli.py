@@ -1,9 +1,11 @@
-from typer.testing import CliRunner
-from fastapi.testclient import TestClient
-from moogla.cli import app
-from moogla import server
-import openai
 import types
+
+import openai
+from fastapi.testclient import TestClient
+from typer.testing import CliRunner
+
+from moogla import server
+from moogla.cli import app
 
 runner = CliRunner()
 
@@ -97,6 +99,7 @@ def test_pull_downloads_to_custom_dir():
 
 def test_pull_http_error(monkeypatch, tmp_path):
     import contextlib
+
     import httpx
 
     def fake_stream(method, url, *a, **kw):
@@ -117,7 +120,9 @@ def test_pull_http_error(monkeypatch, tmp_path):
 
     monkeypatch.setattr(httpx, "stream", fake_stream)
 
-    result = runner.invoke(app, ["pull", "http://example.com/x.bin", "--dir", str(tmp_path)])
+    result = runner.invoke(
+        app, ["pull", "http://example.com/x.bin", "--dir", str(tmp_path)]
+    )
     assert result.exit_code == 1
     assert not (tmp_path / "x.bin").exists()
     assert "Failed to download" in result.output

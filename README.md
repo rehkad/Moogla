@@ -185,4 +185,5 @@ mkdocs serve
 - Keep functions small and composable.
 - Write unit tests for new behavior in `tests/`.
 - Use type hints and docstrings.
+- Install the pre-commit hooks with `pre-commit install`.
 

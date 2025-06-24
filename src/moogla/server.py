@@ -1,28 +1,27 @@
 import json
 import logging
 import os
+from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional
-from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException
-from fastapi_limiter import FastAPILimiter
-from fastapi_limiter.depends import RateLimiter
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-from sqlmodel import SQLModel, Session, create_engine, select
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
+from jose import JWTError, jwt
 from passlib.context import CryptContext
-from jose import jwt, JWTError
-from datetime import datetime, timedelta
+from pydantic import BaseModel
+from sqlmodel import Session, SQLModel, create_engine, select
 
+from . import plugins_config
 from .auth import User
-
+from .config import Settings
 from .executor import LLMExecutor
 from .plugins import load_plugins
-from .config import Settings
-from . import plugins_config
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +59,7 @@ def create_app(
             "Generated ephemeral JWT secret. Set MOOGLA_JWT_SECRET to persist tokens."
         )
     if db_url == "sqlite:///:memory:":
-        logger.warning(
-            "Using in-memory SQLite database; user data will not persist."
-        )
+        logger.warning("Using in-memory SQLite database; user data will not persist.")
 
     if plugin_file:
         plugins_config.set_plugin_file(str(plugin_file))
@@ -143,10 +140,15 @@ def create_app(
     @app.post("/register", status_code=201)
     def register(creds: Credentials):
         with Session(engine) as session:
-            existing = session.exec(select(User).where(User.username == creds.username)).first()
+            existing = session.exec(
+                select(User).where(User.username == creds.username)
+            ).first()
             if existing:
                 raise HTTPException(status_code=400, detail="User exists")
-            user = User(username=creds.username, hashed_password=pwd_context.hash(creds.password))
+            user = User(
+                username=creds.username,
+                hashed_password=pwd_context.hash(creds.password),
+            )
             session.add(user)
             session.commit()
             session.refresh(user)
@@ -155,10 +157,15 @@ def create_app(
     @app.post("/login")
     def login(creds: Credentials):
         with Session(engine) as session:
-            user = session.exec(select(User).where(User.username == creds.username)).first()
+            user = session.exec(
+                select(User).where(User.username == creds.username)
+            ).first()
             if not user or not pwd_context.verify(creds.password, user.hashed_password):
                 raise HTTPException(status_code=401, detail="Invalid credentials")
-        payload = {"sub": str(user.id), "exp": datetime.utcnow() + timedelta(minutes=30)}
+        payload = {
+            "sub": str(user.id),
+            "exp": datetime.utcnow() + timedelta(minutes=30),
+        }
         token = jwt.encode(payload, secret_key, algorithm=algorithm)
         return {"access_token": token, "token_type": "bearer"}
 
@@ -224,8 +231,12 @@ def create_app(
     @app.post("/change-password", **route_args)
     def change_password(change: PasswordChange):
         with Session(engine) as session:
-            user = session.exec(select(User).where(User.username == change.username)).first()
-            if not user or not pwd_context.verify(change.old_password, user.hashed_password):
+            user = session.exec(
+                select(User).where(User.username == change.username)
+            ).first()
+            if not user or not pwd_context.verify(
+                change.old_password, user.hashed_password
+            ):
                 raise HTTPException(status_code=400, detail="Invalid credentials")
             user.hashed_password = pwd_context.hash(change.new_password)
             session.add(user)
@@ -239,6 +250,7 @@ def create_app(
             return {"choices": []}
         content = req.messages[-1].content
         if req.stream:
+
             async def event_stream():
                 text = content
                 for plugin in plugins:
@@ -246,7 +258,9 @@ def create_app(
                         text = await plugin.run_preprocess(text)
                     except Exception as exc:
                         logger.exception("Preprocess plugin failed: %s", exc)
-                        raise HTTPException(status_code=500, detail="Plugin error") from exc
+                        raise HTTPException(
+                            status_code=500, detail="Plugin error"
+                        ) from exc
 
                 async for token in executor.astream(
                     text,
@@ -254,7 +268,9 @@ def create_app(
                     temperature=req.temperature,
                     top_p=req.top_p,
                 ):
-                    yield json.dumps({"choices": [{"delta": {"content": token}}]}) + "\n"
+                    yield json.dumps(
+                        {"choices": [{"delta": {"content": token}}]}
+                    ) + "\n"
 
             return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -270,6 +286,7 @@ def create_app(
     async def completions(req: CompletionRequest):
         """Return a completion for the given prompt using the mock backend."""
         if req.stream:
+
             async def event_stream():
                 text = req.prompt
                 for plugin in plugins:
@@ -277,7 +294,9 @@ def create_app(
                         text = await plugin.run_preprocess(text)
                     except Exception as exc:
                         logger.exception("Preprocess plugin failed: %s", exc)
-                        raise HTTPException(status_code=500, detail="Plugin error") from exc
+                        raise HTTPException(
+                            status_code=500, detail="Plugin error"
+                        ) from exc
 
                 async for token in executor.astream(
                     text,
@@ -285,7 +304,9 @@ def create_app(
                     temperature=req.temperature,
                     top_p=req.top_p,
                 ):
-                    yield json.dumps({"choices": [{"delta": {"content": token}}]}) + "\n"
+                    yield json.dumps(
+                        {"choices": [{"delta": {"content": token}}]}
+                    ) + "\n"
 
             return StreamingResponse(event_stream(), media_type="text/event-stream")
 

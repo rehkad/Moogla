@@ -1,5 +1,6 @@
 import httpx
 import pytest
+
 from moogla import server
 from moogla.server import create_app
 

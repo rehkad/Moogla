@@ -1,15 +1,14 @@
-from typing import List
 import os
 from pathlib import Path
+from typing import List
 from urllib.parse import urlparse
 
 import httpx
-
 import typer
 
-from .server import start_server
 from . import plugins_config
 from .config import Settings
+from .server import start_server
 
 app = typer.Typer(help="Moogla command line interface")
 plugin_app = typer.Typer(help="Manage plugins")
@@ -146,12 +145,12 @@ def serve(
     )
 
 
-
-
 @app.command()
 def pull(
     model: str,
-    dir: Path = typer.Option(None, "--dir", "-d", help="Directory for downloaded models"),
+    dir: Path = typer.Option(
+        None, "--dir", "-d", help="Directory for downloaded models"
+    ),
 ):
     """Download a model into the local cache.
 
@@ -178,9 +177,10 @@ def pull(
             with httpx.stream("GET", url) as resp:
                 resp.raise_for_status()
                 total = int(resp.headers.get("content-length", 0))
-                with open(dest, "wb") as f, typer.progressbar(
-                    length=total or None, label="Downloading"
-                ) as bar:
+                with (
+                    open(dest, "wb") as f,
+                    typer.progressbar(length=total or None, label="Downloading") as bar,
+                ):
                     for chunk in resp.iter_bytes():
                         f.write(chunk)
                         if total:
@@ -192,9 +192,11 @@ def pull(
             raise typer.Exit(code=1)
     elif Path(model).is_file():
         size = os.path.getsize(model)
-        with open(model, "rb") as src, open(dest, "wb") as dst, typer.progressbar(
-            length=size, label="Downloading"
-        ) as bar:
+        with (
+            open(model, "rb") as src,
+            open(dest, "wb") as dst,
+            typer.progressbar(length=size, label="Downloading") as bar,
+        ):
             while True:
                 data = src.read(8192)
                 if not data:
