@@ -58,6 +58,7 @@ Pull a model and start the server with a custom plugin:
 moogla pull codellama:13b
 moogla serve --model path/to/codellama-13b.gguf --plugin tests.dummy_plugin
 ```
+Models are stored under `~/.cache/moogla/models` by default. Set `MOOGLA_MODEL_DIR` before running the pull command to use a different directory.
 
 To use a Hugging Face model ID instead of a file path:
 
