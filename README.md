@@ -77,6 +77,13 @@ return the modified value.
 A plugin can specify an integer `order` attribute to control execution order
 when multiple plugins are loaded. Lower numbers run first.
 
+### Async Limitations
+
+Local models loaded through `llama-cpp-python` do not expose an asynchronous
+interface. When `LLMExecutor.acomplete` is called with such a model, inference
+runs in a background thread via `asyncio.to_thread`. Heavy local workloads can
+therefore limit overall throughput compared to fully async providers.
+
 ## Development Setup
 
 The project uses [Typer](https://typer.tiangolo.com/) for the CLI and
