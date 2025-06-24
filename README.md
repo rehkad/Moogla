@@ -99,6 +99,9 @@ When rate limiting is enabled, `MOOGLA_REDIS_URL` controls the Redis connection
 used for tracking request counts (default `redis://localhost:6379`). These values
 can also be passed to `create_app` or `moogla serve`.
 
+The authentication subsystem relies on a secret key for signing tokens. Set
+`MOOGLA_SECRET_KEY` to override the default value of `"secret"`.
+
 ## Running with Docker
 
 Build the image and start the server:

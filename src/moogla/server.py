@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from .executor import LLMExecutor
 from .plugins import load_plugins
+from . import auth
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +28,17 @@ def create_app(
     server_api_key: Optional[str] = None,
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
+    secret_key: Optional[str] = None,
 ) -> FastAPI:
-    """Build the FastAPI application."""
+    """Build the FastAPI application.
+
+    Parameters
+    ----------
+    secret_key:
+        Optional key forwarded to :func:`moogla.auth.init` for signing
+        authentication tokens. If omitted, ``MOOGLA_SECRET_KEY`` is used or
+        ``"secret"`` as a fallback.
+    """
     plugins = load_plugins(plugin_names)
 
     model = model or os.getenv("MOOGLA_MODEL", "gpt-3.5-turbo")
@@ -39,6 +49,11 @@ def create_app(
         env_limit = os.getenv("MOOGLA_RATE_LIMIT")
         rate_limit = int(env_limit) if env_limit else None
     redis_url = redis_url or os.getenv("MOOGLA_REDIS_URL", "redis://localhost:6379")
+    secret_key = secret_key or os.getenv("MOOGLA_SECRET_KEY", "secret")
+
+    # Initialize authentication subsystem
+    auth_db = os.getenv("MOOGLA_AUTH_DB", "sqlite:///:memory:")
+    auth.init(auth_db, secret_key=secret_key)
 
     executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
 
@@ -156,8 +171,16 @@ def start_server(
     server_api_key: Optional[str] = None,
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
+    secret_key: Optional[str] = None,
 ) -> None:
-    """Run the HTTP server."""
+    """Run the HTTP server.
+
+    Parameters
+    ----------
+    secret_key:
+        Value passed through to :func:`create_app` for configuring the
+        authentication subsystem.
+    """
     app = create_app(
         plugin_names=plugin_names,
         model=model,
@@ -166,5 +189,6 @@ def start_server(
         server_api_key=server_api_key,
         rate_limit=rate_limit,
         redis_url=redis_url,
+        secret_key=secret_key,
     )
     uvicorn.run(app, host=host, port=port)
