@@ -53,3 +53,17 @@ def test_serve_with_plugin(monkeypatch):
     resp = client.post("/v1/completions", json={"prompt": "abc"})
     assert resp.status_code == 200
     assert resp.json()["choices"][0]["text"] == "!!CBA!!"
+
+
+def test_pull_downloads_to_custom_dir():
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as source_dir:
+        src = Path(source_dir) / "dummy.txt"
+        src.write_text("hi")
+
+        with tempfile.TemporaryDirectory() as target_dir:
+            result = runner.invoke(app, ["pull", str(src), "--dir", target_dir])
+            assert result.exit_code == 0
+            assert (Path(target_dir) / "dummy.txt").exists()
