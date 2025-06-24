@@ -11,6 +11,11 @@ class DummyExecutor:
     async def acomplete(self, prompt: str, max_tokens: int = 16) -> str:
         return prompt[::-1]
 
+    async def astream(self, prompt: str, max_tokens: int = 16):
+        text = prompt[::-1]
+        for i in range(0, len(text), 2):
+            yield text[i : i + 2]
+
 
 @pytest.mark.asyncio
 async def test_authenticated_access(monkeypatch):
