@@ -27,8 +27,11 @@ def create_app(
     server_api_key: Optional[str] = None,
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
+    db_url: Optional[str] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
+    if db_url:
+        os.environ["MOOGLA_PLUGIN_DB"] = db_url.replace("sqlite:///", "")
     plugins = load_plugins(plugin_names)
 
     model = model or os.getenv("MOOGLA_MODEL", "gpt-3.5-turbo")
@@ -156,6 +159,7 @@ def start_server(
     server_api_key: Optional[str] = None,
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
+    db_url: Optional[str] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -166,5 +170,6 @@ def start_server(
         server_api_key=server_api_key,
         rate_limit=rate_limit,
         redis_url=redis_url,
+        db_url=db_url,
     )
     uvicorn.run(app, host=host, port=port)

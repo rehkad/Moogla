@@ -65,7 +65,9 @@ async def test_plugins(monkeypatch):
 async def test_chat_completion_stream(monkeypatch):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
     app = create_app()
-    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.post(
             "/v1/chat/completions",
             json={"messages": [{"role": "user", "content": "hello"}], "stream": True},
@@ -81,7 +83,9 @@ async def test_chat_completion_stream(monkeypatch):
 async def test_completion_stream(monkeypatch):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
     app = create_app()
-    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.post(
             "/v1/completions",
             json={"prompt": "abc", "stream": True},
