@@ -183,9 +183,16 @@ def create_app(
         content = req.messages[-1].content
         if req.stream:
             async def event_stream():
-                reply = await apply_plugins(content)
-                for char in reply:
-                    yield json.dumps({"choices": [{"delta": {"content": char}}]}) + "\n"
+                text = content
+                for plugin in plugins:
+                    try:
+                        text = await plugin.run_preprocess(text)
+                    except Exception as exc:
+                        logger.exception("Preprocess plugin failed: %s", exc)
+                        raise HTTPException(status_code=500, detail="Plugin error") from exc
+
+                async for token in executor.astream(text):
+                    yield json.dumps({"choices": [{"delta": {"content": token}}]}) + "\n"
 
             return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -197,9 +204,16 @@ def create_app(
         """Return a completion for the given prompt using the mock backend."""
         if req.stream:
             async def event_stream():
-                reply = await apply_plugins(req.prompt)
-                for char in reply:
-                    yield json.dumps({"choices": [{"delta": {"content": char}}]}) + "\n"
+                text = req.prompt
+                for plugin in plugins:
+                    try:
+                        text = await plugin.run_preprocess(text)
+                    except Exception as exc:
+                        logger.exception("Preprocess plugin failed: %s", exc)
+                        raise HTTPException(status_code=500, detail="Plugin error") from exc
+
+                async for token in executor.astream(text):
+                    yield json.dumps({"choices": [{"delta": {"content": token}}]}) + "\n"
 
             return StreamingResponse(event_stream(), media_type="text/event-stream")
 

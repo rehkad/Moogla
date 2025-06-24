@@ -6,6 +6,7 @@ from typing import Optional
 import os
 from pathlib import Path
 import asyncio
+import threading
 
 import openai
 
@@ -58,6 +59,77 @@ class LLMExecutor:
             result = self.llama(prompt, max_tokens=max_tokens)
             return result["choices"][0]["text"]
         raise RuntimeError("No LLM backend configured")
+
+    def stream(self, prompt: str, *, max_tokens: int = 16):
+        """Yield completion tokens for the given prompt."""
+        if self.client:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            for chunk in response:
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    yield delta
+            return
+
+        if self.generator:
+            try:
+                from transformers import TextIteratorStreamer
+                import torch
+
+                streamer = TextIteratorStreamer(
+                    self.generator.tokenizer, skip_prompt=True, skip_special_tokens=True
+                )
+                inputs = self.generator.tokenizer(prompt, return_tensors="pt")
+                thread = threading.Thread(
+                    target=self.generator.model.generate,
+                    kwargs={
+                        **inputs,
+                        "max_new_tokens": max_tokens,
+                        "streamer": streamer,
+                    },
+                )
+                thread.start()
+                for text in streamer:
+                    yield text
+                thread.join()
+            except Exception:
+                result = self.generator(prompt, max_new_tokens=max_tokens)
+                yield result[0]["generated_text"]
+            return
+
+        if self.llama:
+            result = self.llama(
+                prompt, max_tokens=max_tokens, stream=True
+            )  # type: ignore[arg-type]
+            for chunk in result:
+                text = chunk.get("choices", [{}])[0].get("text")
+                if text:
+                    yield text
+            return
+
+        raise RuntimeError("No LLM backend configured")
+
+    async def astream(self, prompt: str, *, max_tokens: int = 16):
+        """Asynchronously yield completion tokens for the prompt."""
+        if self.async_client:
+            response = await self.async_client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            async for chunk in response:
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    yield delta
+            return
+
+        for token in self.stream(prompt, max_tokens=max_tokens):
+            yield token
 
     async def acomplete(self, prompt: str, *, max_tokens: int = 16) -> str:
         """Asynchronously return a completion for the given prompt."""

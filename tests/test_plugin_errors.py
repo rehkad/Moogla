@@ -20,6 +20,11 @@ class DummyExecutor:
     async def acomplete(self, prompt: str, max_tokens: int = 16) -> str:
         return prompt[::-1]
 
+    async def astream(self, prompt: str, max_tokens: int = 16):
+        text = prompt[::-1]
+        for i in range(0, len(text), 2):
+            yield text[i : i + 2]
+
 
 def test_preprocess_exception_results_in_500(tmp_path, monkeypatch):
     mod = types.ModuleType('error_pre_plugin')

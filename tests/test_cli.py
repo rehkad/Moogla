@@ -44,6 +44,11 @@ def test_serve_with_plugin(monkeypatch):
         async def acomplete(self, prompt: str, max_tokens: int = 16) -> str:
             return prompt[::-1]
 
+        async def astream(self, prompt: str, max_tokens: int = 16):
+            text = prompt[::-1]
+            for i in range(0, len(text), 2):
+                yield text[i : i + 2]
+
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
 
     result = runner.invoke(app, ["serve", "--plugin", "tests.dummy_plugin"])
