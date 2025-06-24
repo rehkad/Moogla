@@ -1,5 +1,6 @@
 from typing import List
 import os
+import hashlib
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -135,13 +136,22 @@ def serve(
 def pull(
     model: str,
     dir: Path = typer.Option(None, "--dir", "-d", help="Directory for downloaded models"),
+    checksum: str = typer.Option(
+        None,
+        "--checksum",
+        help="Expected SHA256 checksum to verify after download",
+        show_default=False,
+    ),
 ):
     """Download a model into the local cache.
+
+    Resumes interrupted downloads and optionally verifies the SHA256 checksum.
 
     Parameters
     ----------
     model: Identifier, path or URL of the model to fetch.
     dir: Target directory for the downloaded file.
+    checksum: Expected SHA256 checksum.
     """
     settings = Settings()
     dest_dir = dir or settings.model_dir
@@ -150,34 +160,55 @@ def pull(
     parsed = urlparse(model)
     filename = Path(parsed.path).name or "model"
     dest = dest_dir / filename
+    temp = dest.with_suffix(dest.suffix + ".part")
+
+    def verify(path: Path, expected: str) -> bool:
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""):
+                h.update(chunk)
+        return h.hexdigest() == expected.lower()
 
     if dest.exists():
-        typer.echo(f"Using cached model at {dest}")
-        return
+        if checksum and not verify(dest, checksum):
+            typer.echo("Checksum mismatch for cached file", err=True)
+            dest.unlink()
+        else:
+            typer.echo(f"Using cached model at {dest}")
+            return
 
-    if parsed.scheme in {"http", "https", "file"}:
+    downloaded = temp.stat().st_size if temp.exists() else 0
+
+    if parsed.scheme in {"http", "https"}:
         url = model
+        headers = {"Range": f"bytes={downloaded}-"} if downloaded else None
         try:
-            with httpx.stream("GET", url) as resp:
+            with httpx.stream("GET", url, headers=headers) as resp:
                 resp.raise_for_status()
                 total = int(resp.headers.get("content-length", 0))
-                with open(dest, "wb") as f, typer.progressbar(
+                total = total + downloaded if total else 0
+                mode = "ab" if downloaded else "wb"
+                with open(temp, mode) as f, typer.progressbar(
                     length=total or None, label="Downloading"
                 ) as bar:
+                    if downloaded and total:
+                        bar.update(downloaded)
                     for chunk in resp.iter_bytes():
                         f.write(chunk)
                         if total:
                             bar.update(len(chunk))
         except Exception as e:
-            if dest.exists():
-                dest.unlink()
             typer.echo(f"Failed to download {url}: {e}", err=True)
             raise typer.Exit(code=1)
     elif Path(model).is_file():
         size = os.path.getsize(model)
-        with open(model, "rb") as src, open(dest, "wb") as dst, typer.progressbar(
+        mode = "ab" if downloaded else "wb"
+        with open(model, "rb") as src, open(temp, mode) as dst, typer.progressbar(
             length=size, label="Downloading"
         ) as bar:
+            if downloaded:
+                bar.update(downloaded)
+            src.seek(downloaded)
             while True:
                 data = src.read(8192)
                 if not data:
@@ -186,6 +217,13 @@ def pull(
                 bar.update(len(data))
     else:
         typer.echo(f"Unknown model source: {model}")
+        raise typer.Exit(code=1)
+
+    os.replace(temp, dest)
+
+    if checksum and not verify(dest, checksum):
+        dest.unlink()
+        typer.echo("Checksum verification failed", err=True)
         raise typer.Exit(code=1)
 
     typer.echo(f"\nSaved to {dest}")
