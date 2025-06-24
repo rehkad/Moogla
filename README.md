@@ -23,10 +23,14 @@ observable and developer friendly.
 1. Run the setup script to create a virtual environment and install dependencies:
 
    ```bash
-   ./scripts/setup.sh -d
+   ./scripts/setup.sh
    ```
 
-   The `-d` flag installs development tools like `pytest` and `pre-commit`.
+   When you want the development tools, install the optional extras:
+
+   ```bash
+   pip install -e .[dev]
+   ```
 
 2. After installation, run the CLI to see available commands:
 
