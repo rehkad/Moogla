@@ -148,8 +148,10 @@ The API also exposes `/register` and `/login` endpoints for JWT-based
 authentication. POST a username and password to `/register` to persist a user
 record, then call `/login` with the same credentials to obtain a token.
 Include this token in an `Authorization: Bearer <token>` header when calling the
-LLM routes. Authentication support relies on the `SQLModel`, `passlib` and
-`python-jose` packages.
+LLM routes. Tokens are signed with a random secret and stored in an in-memory
+SQLite database by default. Set `MOOGLA_JWT_SECRET` and `MOOGLA_DB_URL` to keep
+credentials valid across restarts. Authentication support relies on the
+`SQLModel`, `passlib` and `python-jose` packages.
 
 ## Running with Docker
 
