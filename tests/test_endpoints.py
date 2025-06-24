@@ -26,3 +26,11 @@ def test_plugins():
     resp = client.post("/v1/chat/completions", json={"messages": [{"role": "user", "content": "hello"}]})
     assert resp.status_code == 200
     assert resp.json()["choices"][0]["message"]["content"] == "!!OLLEH!!"
+
+
+def test_root_endpoint():
+    app = create_app()
+    client = TestClient(app)
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "Moogla Chat" in resp.text
