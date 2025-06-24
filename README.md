@@ -12,6 +12,7 @@ modular, observable and developer friendly.
 - FastAPI server exposing OpenAI compatible endpoints
 - Built‑in web UI located in `src/moogla/web`
 - Example tests showing how to extend the framework
+- Configurable request logging and Prometheus `/metrics` endpoint
 
 ## Project Layout
 
@@ -60,6 +61,9 @@ You can then query the chat completion endpoint:
 curl -X POST http://localhost:11434/v1/chat/completions \
   -d '{"messages": [{"role": "user", "content": "hello"}]}'
 ```
+
+Metrics are available at `http://localhost:11434/metrics` when
+`prometheus-client` is installed.
 
 ## Development Setup
 

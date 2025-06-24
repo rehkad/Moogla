@@ -1,16 +1,41 @@
 from typing import List, Optional
 
 import os
+import logging
+import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 from pydantic import BaseModel
 import uvicorn
 
+from . import configure_logging
 from .plugins import Plugin, load_plugins
 from .executor import LLMExecutor
+
+try:  # pragma: no-cover - optional dependency
+    from prometheus_client import (
+        CONTENT_TYPE_LATEST,
+        Counter,
+        Histogram,
+        generate_latest,
+    )
+
+    REQUEST_COUNT = Counter(
+        "requests_total",
+        "Total HTTP requests",
+        ["method", "endpoint", "status"],
+    )
+    REQUEST_LATENCY = Histogram(
+        "request_latency_seconds",
+        "HTTP request latency",
+        ["endpoint"],
+    )
+    HAVE_METRICS = True
+except Exception:  # pragma: no-cover - optional dependency may be missing
+    HAVE_METRICS = False
 
 
 def create_app(
@@ -20,6 +45,9 @@ def create_app(
     api_base: Optional[str] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
+    configure_logging()
+    logger = logging.getLogger(__name__)
+
     plugins = load_plugins(plugin_names)
 
     model = model or os.getenv("MOOGLA_MODEL", "gpt-3.5-turbo")
@@ -29,6 +57,25 @@ def create_app(
     executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
 
     app = FastAPI(title="Moogla API")
+
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        start = time.time()
+        logger.info("%s %s", request.method, request.url.path)
+        response = await call_next(request)
+        duration = time.time() - start
+        logger.info(
+            "%s %s -> %s (%.3fs)",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration,
+        )
+        if HAVE_METRICS:
+            endpoint = request.url.path
+            REQUEST_COUNT.labels(request.method, endpoint, response.status_code).inc()
+            REQUEST_LATENCY.labels(endpoint).observe(duration)
+        return response
 
     static_dir = Path(__file__).resolve().parent / "web"
     if static_dir.exists():
@@ -80,6 +127,13 @@ def create_app(
         """Return a completion for the given prompt using the mock backend."""
         reply = await apply_plugins(req.prompt)
         return {"choices": [{"text": reply}]}
+
+    if HAVE_METRICS:
+        @app.get("/metrics")
+        def metrics() -> Response:
+            """Expose Prometheus metrics."""
+            data = generate_latest()
+            return Response(data, media_type=CONTENT_TYPE_LATEST)
 
     return app
 

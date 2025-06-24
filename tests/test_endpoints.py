@@ -60,3 +60,11 @@ def test_root_endpoint():
     resp = client.get("/")
     assert resp.status_code == 200
     assert "Moogla Chat" in resp.text
+
+
+def test_metrics_endpoint():
+    app = create_app()
+    client = TestClient(app)
+    resp = client.get("/metrics")
+    assert resp.status_code == 200
+    assert "python_info" in resp.text

@@ -16,6 +16,7 @@ dependencies = [
     "uvicorn>=0.28",
     "openai>=1.30",
     "httpx>=0.27,<0.28",
+    "prometheus-client>=0.20",
 ]
 
 [project.scripts]
@@ -24,6 +25,7 @@ moogla = "moogla.cli:app"
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "pytest-asyncio",
     "pre-commit",
     "httpx>=0.27,<0.28"
 ]
