@@ -39,3 +39,36 @@ path for all plugin commands:
 export MOOGLA_PLUGIN_FILE=/path/to/plugins.json
 moogla plugin add my_plugin
 ```
+
+## Plugin Settings
+
+Additional options for a plugin can be stored alongside its name in the
+configuration file. When a plugin defines a `setup(settings: dict)` function,
+those settings are passed to it on load.
+
+Example YAML structure:
+
+```yaml
+plugins:
+  - my_plugin
+settings:
+  my_plugin:
+    greeting: hello
+```
+
+Within the plugin you can read the settings during setup:
+
+```python
+# my_plugin.py
+config = {}
+
+def setup(settings: dict) -> None:
+    config.update(settings)
+
+def preprocess(text: str) -> str:
+    return f"{config.get('greeting', '')}{text}"
+```
+
+Settings are automatically provided when running `moogla serve` or creating the
+application programmatically.
+

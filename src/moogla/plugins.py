@@ -56,6 +56,16 @@ def load_plugins(names: Optional[List[str]]) -> List[Plugin]:
         except Exception as exc:
             logger.error("Failed to import plugin '%s': %s", name, exc)
             raise ImportError(f"Cannot import plugin '{name}'") from exc
+
+        settings = plugins_config.get_plugin_settings(name)
+        setup_func = getattr(module, "setup", None)
+        if setup_func:
+            try:
+                setup_func(settings)
+            except Exception as exc:  # pragma: no cover - pass through
+                logger.error("Failed to setup plugin '%s': %s", name, exc)
+                raise
+
         plugins.append(Plugin(module))
 
     plugins.sort(key=lambda p: p.order)
