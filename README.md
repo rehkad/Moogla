@@ -54,6 +54,11 @@ curl -X POST http://localhost:11434/v1/chat/completions \
   -d '{"messages": [{"role": "user", "content": "hello"}]}'
 ```
 
+### Web Interface
+
+After starting the server, open `http://localhost:11434/app` in your browser to
+use the simple chat UI included with the package.
+
 ## Contributing Guidelines
 
 - Use the `src` layout for all packages and modules.
