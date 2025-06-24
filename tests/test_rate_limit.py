@@ -3,6 +3,7 @@ import os
 import httpx
 import pytest
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -76,3 +77,22 @@ async def test_rate_limit(monkeypatch):
         await client.post("/v1/completions", json={"prompt": "abc"})
         resp = await client.post("/v1/completions", json={"prompt": "abc"})
     assert resp.status_code == 429
+
+
+def test_no_rate_limit(monkeypatch):
+    """Ensure Redis is not contacted when rate limiting is disabled."""
+
+    def fail_init(*args, **kwargs):  # pragma: no cover - should not be called
+        raise AssertionError("init called")
+
+    def fail_from_url(*args, **kwargs):  # pragma: no cover - should not be called
+        raise AssertionError("redis accessed")
+
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
+    monkeypatch.setattr(server.FastAPILimiter, "init", fail_init)
+    monkeypatch.setattr(server.FastAPILimiter, "close", lambda *a, **k: None)
+    monkeypatch.setattr("redis.asyncio.from_url", fail_from_url)
+
+    with TestClient(create_app(rate_limit=None, redis_url="redis://test")) as client:
+        resp = client.get("/health")
+        assert resp.status_code == 200

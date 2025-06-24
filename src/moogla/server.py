@@ -106,14 +106,18 @@ def create_app(
     if rate_limit:
         dependencies.append(Depends(RateLimiter(times=rate_limit, seconds=60)))
 
-    @asynccontextmanager
-    async def lifespan(_: FastAPI):
-        import redis.asyncio as redis
+    lifespan = None
+    if rate_limit:
+        @asynccontextmanager
+        async def lifespan(_: FastAPI):
+            import redis.asyncio as redis
 
-        redis_conn = redis.from_url(redis_url, encoding="utf8", decode_responses=True)
-        await FastAPILimiter.init(redis_conn)
-        yield
-        await FastAPILimiter.close()
+            redis_conn = redis.from_url(
+                redis_url, encoding="utf8", decode_responses=True
+            )
+            await FastAPILimiter.init(redis_conn)
+            yield
+            await FastAPILimiter.close()
 
     app = FastAPI(title="Moogla API", dependencies=dependencies, lifespan=lifespan)
     app.state.db_url = db_url
