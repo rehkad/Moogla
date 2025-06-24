@@ -1,4 +1,6 @@
 """Moogla core package."""
 
-__all__ = ["__version__"]
+from .executor import LLMExecutor
+
+__all__ = ["__version__", "LLMExecutor"]
 __version__ = "0.0.1"
