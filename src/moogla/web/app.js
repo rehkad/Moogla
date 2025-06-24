@@ -6,6 +6,7 @@ const pluginContainer = document.getElementById('plugin-container');
 const fileInput = document.getElementById('file-input');
 const hintsContainer = document.getElementById('hints');
 const clearBtn = document.getElementById('clear-chat');
+const toggleDarkBtn = document.getElementById('toggle-dark');
 
 const models = ['default', 'codellama:13b'];
 const plugins = ['tests.dummy_plugin'];
@@ -67,9 +68,15 @@ function addMessage(role, text) {
     const div = document.createElement('div');
     div.className = `mb-2 ${role === 'user' ? 'text-right' : 'text-left'}`;
     const span = document.createElement('span');
-    span.className = `${role === 'user' ? 'bg-blue-100' : 'bg-green-100'} px-2 py-1 rounded`;
+    span.className = `${role === 'user' ? 'bg-blue-100 dark:bg-blue-900' : 'bg-green-100 dark:bg-green-900'} px-2 py-1 rounded inline-block`;
     span.textContent = text;
+    span.title = 'Double-click to copy';
+    span.addEventListener('dblclick', () => navigator.clipboard.writeText(span.textContent));
+    const timeEl = document.createElement('span');
+    timeEl.className = 'ml-2 text-xs text-gray-500';
+    timeEl.textContent = new Date().toLocaleTimeString();
     div.appendChild(span);
+    div.appendChild(timeEl);
     chatEl.appendChild(div);
     chatEl.scrollTop = chatEl.scrollHeight;
     return span;
@@ -152,6 +159,11 @@ clearBtn.addEventListener('click', () => {
     history = [];
     localStorage.removeItem('chatHistory');
     chatEl.innerHTML = '';
+});
+
+toggleDarkBtn.addEventListener('click', () => {
+    const enabled = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('darkMode', enabled ? '1' : '0');
 });
 
 loadModels();
