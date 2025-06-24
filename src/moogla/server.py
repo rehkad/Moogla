@@ -2,10 +2,11 @@ from typing import List, Optional
 
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, Header, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
+import time
 from pydantic import BaseModel
 import uvicorn
 
@@ -18,6 +19,8 @@ def create_app(
     model: Optional[str] = None,
     api_key: Optional[str] = None,
     api_base: Optional[str] = None,
+    server_api_key: Optional[str] = None,
+    rate_limit: Optional[int] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
     plugins = load_plugins(plugin_names)
@@ -25,10 +28,57 @@ def create_app(
     model = model or os.getenv("MOOGLA_MODEL", "gpt-3.5-turbo")
     api_key = api_key or os.getenv("OPENAI_API_KEY")
     api_base = api_base or os.getenv("OPENAI_API_BASE")
+    server_api_key = server_api_key or os.getenv("MOOGLA_API_KEY")
+    if rate_limit is None:
+        env_limit = os.getenv("MOOGLA_RATE_LIMIT")
+        rate_limit = int(env_limit) if env_limit else None
 
     executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
 
-    app = FastAPI(title="Moogla API")
+    dependencies = []
+
+    if server_api_key:
+
+        async def verify_api_key(
+            x_api_key: Optional[str] = Header(None, alias="X-API-Key")
+        ) -> None:
+            if x_api_key != server_api_key:
+                raise HTTPException(status_code=401, detail="Invalid API Key")
+
+        dependencies.append(Depends(verify_api_key))
+
+    app = FastAPI(title="Moogla API", dependencies=dependencies)
+
+    if rate_limit:
+
+        class RateLimitMiddleware:
+            def __init__(self, app: FastAPI, limit: int, window: int = 60) -> None:
+                self.app = app
+                self.limit = limit
+                self.window = window
+                self.hits: dict[str, tuple[int, float]] = {}
+
+            async def __call__(self, scope, receive, send):
+                if scope["type"] == "http":
+                    client = scope.get("client")
+                    if client:
+                        ip = client[0]
+                        now = time.time()
+                        count, start = self.hits.get(ip, (0, now))
+                        if now - start > self.window:
+                            start = now
+                            count = 0
+                        count += 1
+                        self.hits[ip] = (count, start)
+                        if count > self.limit:
+                            response = JSONResponse(
+                                {"detail": "Too Many Requests"}, status_code=429
+                            )
+                            await response(scope, receive, send)
+                            return
+                await self.app(scope, receive, send)
+
+        app.add_middleware(RateLimitMiddleware, limit=rate_limit)
 
     static_dir = Path(__file__).resolve().parent / "web"
     if static_dir.exists():
@@ -91,6 +141,8 @@ def start_server(
     model: Optional[str] = None,
     api_key: Optional[str] = None,
     api_base: Optional[str] = None,
+    server_api_key: Optional[str] = None,
+    rate_limit: Optional[int] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -98,5 +150,7 @@ def start_server(
         model=model,
         api_key=api_key,
         api_base=api_base,
+        server_api_key=server_api_key,
+        rate_limit=rate_limit,
     )
     uvicorn.run(app, host=host, port=port)
