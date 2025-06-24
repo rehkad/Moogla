@@ -23,6 +23,7 @@ class Settings(BaseSettings):
         default_factory=lambda: secrets.token_urlsafe(32),
         env="MOOGLA_JWT_SECRET",
     )
+    token_exp_minutes: int = Field(30, env="MOOGLA_TOKEN_EXP_MINUTES")
     model_dir: Path = Field(
         default_factory=lambda: Path.home() / ".cache" / "moogla" / "models",
         env="MOOGLA_MODEL_DIR",

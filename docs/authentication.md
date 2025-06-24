@@ -15,6 +15,9 @@ Tokens are signed with `MOOGLA_JWT_SECRET`. If this variable is not set the
 server generates a random value on startup, meaning issued tokens become
 invalid after a restart. Specify a persistent secret in production.
 
+`MOOGLA_TOKEN_EXP_MINUTES` configures the token lifetime in minutes. The
+default is `30`.
+
 User records are kept in an in-memory SQLite database by default. Set
 `MOOGLA_DB_URL` to use a durable database so accounts survive server restarts.
 

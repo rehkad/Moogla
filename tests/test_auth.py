@@ -1,5 +1,6 @@
 import httpx
 import pytest
+import asyncio
 
 from moogla import server
 from moogla.server import create_app
@@ -108,3 +109,25 @@ async def test_user_endpoints(monkeypatch, tmp_path):
         assert resp.status_code == 401
         resp = await client.post("/login", json={"username": "u", "password": "n"})
         assert resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_token_expiration(monkeypatch, tmp_path):
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
+    db = tmp_path / "db.db"
+    app = create_app(server_api_key="secret", db_url=f"sqlite:///{db}", token_exp_minutes=0)
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.post("/register", json={"username": "u", "password": "p"})
+        assert resp.status_code == 201
+        resp = await client.post("/login", json={"username": "u", "password": "p"})
+        assert resp.status_code == 200
+        token = resp.json()["access_token"]
+        await asyncio.sleep(1)
+        resp = await client.post(
+            "/v1/completions",
+            json={"prompt": "abc"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 401
