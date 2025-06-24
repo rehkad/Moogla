@@ -67,6 +67,14 @@ curl -X POST http://localhost:11434/v1/chat/completions \
   -d '{"messages": [{"role": "user", "content": "hello"}]}'
 ```
 
+The request body may also include ``max_tokens``, ``temperature`` and ``top_p``
+fields:
+
+```bash
+curl -X POST http://localhost:11434/v1/chat/completions \
+  -d '{"messages": [{"role": "user", "content": "hello"}], "max_tokens": 32, "temperature": 0.7}'
+```
+
 ### Plugin API
 
 Plugins are regular Python modules that expose optional `preprocess` and

@@ -8,10 +8,22 @@ from moogla import server, plugins_config
 
 
 class DummyExecutor:
-    def complete(self, prompt: str, max_tokens: int = 16) -> str:
+    def complete(
+        self,
+        prompt: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ) -> str:
         return prompt[::-1]
 
-    async def acomplete(self, prompt: str, max_tokens: int = 16) -> str:
+    async def acomplete(
+        self,
+        prompt: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ) -> str:
         return prompt[::-1]
 
 

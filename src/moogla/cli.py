@@ -113,6 +113,9 @@ def serve(
     port: TCP port to listen on.
     plugin: Optional plugin modules to initialize.
     db_url: Optional database connection string.
+
+    The completion endpoints accept optional ``max_tokens``, ``temperature``
+    and ``top_p`` fields to control generation.
     """
     start_server(
         host=host,

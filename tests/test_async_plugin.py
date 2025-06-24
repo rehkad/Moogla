@@ -9,13 +9,31 @@ os.environ.setdefault("OPENAI_API_KEY", "test-key")
 
 
 class DummyExecutor:
-    def complete(self, prompt: str, max_tokens: int = 16) -> str:
+    def complete(
+        self,
+        prompt: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ) -> str:
         return prompt[::-1]
 
-    async def acomplete(self, prompt: str, max_tokens: int = 16) -> str:
+    async def acomplete(
+        self,
+        prompt: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ) -> str:
         return prompt[::-1]
 
-    async def astream(self, prompt: str, max_tokens: int = 16):
+    async def astream(
+        self,
+        prompt: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ):
         text = prompt[::-1]
         for i in range(0, len(text), 2):
             yield text[i : i + 2]

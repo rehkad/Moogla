@@ -161,12 +161,24 @@ def create_app(
     class ChatRequest(BaseModel):
         messages: List[Message]
         stream: bool = False
+        max_tokens: Optional[int] = None
+        temperature: Optional[float] = None
+        top_p: Optional[float] = None
 
     class CompletionRequest(BaseModel):
         prompt: str
         stream: bool = False
+        max_tokens: Optional[int] = None
+        temperature: Optional[float] = None
+        top_p: Optional[float] = None
 
-    async def apply_plugins(text: str) -> str:
+    async def apply_plugins(
+        text: str,
+        *,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+    ) -> str:
         """Run text through plugin hooks and return the mock LLM output."""
         for plugin in plugins:
             try:
@@ -174,7 +186,12 @@ def create_app(
             except Exception as exc:
                 logger.exception("Preprocess plugin failed: %s", exc)
                 raise HTTPException(status_code=500, detail="Plugin error") from exc
-        response = await executor.acomplete(text)
+        response = await executor.acomplete(
+            text,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p,
+        )
         for plugin in plugins:
             try:
                 response = await plugin.run_postprocess(response)
@@ -201,12 +218,22 @@ def create_app(
                         logger.exception("Preprocess plugin failed: %s", exc)
                         raise HTTPException(status_code=500, detail="Plugin error") from exc
 
-                async for token in executor.astream(text):
+                async for token in executor.astream(
+                    text,
+                    max_tokens=req.max_tokens,
+                    temperature=req.temperature,
+                    top_p=req.top_p,
+                ):
                     yield json.dumps({"choices": [{"delta": {"content": token}}]}) + "\n"
 
             return StreamingResponse(event_stream(), media_type="text/event-stream")
 
-        reply = await apply_plugins(content)
+        reply = await apply_plugins(
+            content,
+            max_tokens=req.max_tokens,
+            temperature=req.temperature,
+            top_p=req.top_p,
+        )
         return {"choices": [{"message": {"role": "assistant", "content": reply}}]}
 
     @app.post("/v1/completions", **route_args)
@@ -222,12 +249,22 @@ def create_app(
                         logger.exception("Preprocess plugin failed: %s", exc)
                         raise HTTPException(status_code=500, detail="Plugin error") from exc
 
-                async for token in executor.astream(text):
+                async for token in executor.astream(
+                    text,
+                    max_tokens=req.max_tokens,
+                    temperature=req.temperature,
+                    top_p=req.top_p,
+                ):
                     yield json.dumps({"choices": [{"delta": {"content": token}}]}) + "\n"
 
             return StreamingResponse(event_stream(), media_type="text/event-stream")
 
-        reply = await apply_plugins(req.prompt)
+        reply = await apply_plugins(
+            req.prompt,
+            max_tokens=req.max_tokens,
+            temperature=req.temperature,
+            top_p=req.top_p,
+        )
         return {"choices": [{"text": reply}]}
 
     return app
