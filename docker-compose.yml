@@ -1,7 +1,9 @@
 version: '3.8'
 services:
   moogla:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
     ports:
       - "11434:11434"
     environment:
@@ -9,3 +11,4 @@ services:
       - MOOGLA_MODEL=codellama:13b
     volumes:
       - ./models:/models
+    restart: always

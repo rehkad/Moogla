@@ -1,20 +1,19 @@
 import json
-import logging
+from loguru import logger
+from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Counter, generate_latest
 import os
 import time
 from pathlib import Path
 from typing import List, Optional
 
 import uvicorn
-from fastapi import Depends, FastAPI, Header, HTTPException
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .executor import LLMExecutor
 from .plugins import load_plugins
-
-logger = logging.getLogger(__name__)
 
 
 def create_app(
@@ -38,6 +37,14 @@ def create_app(
 
     executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
 
+    registry = CollectorRegistry()
+    request_counter = Counter(
+        "moogla_http_requests_total",
+        "HTTP requests",
+        ["method", "path"],
+        registry=registry,
+    )
+
     dependencies = []
 
     if server_api_key:
@@ -51,6 +58,12 @@ def create_app(
         dependencies.append(Depends(verify_api_key))
 
     app = FastAPI(title="Moogla API", dependencies=dependencies)
+
+    @app.middleware("http")
+    async def record_metrics(request: Request, call_next):
+        response = await call_next(request)
+        request_counter.labels(request.method, request.url.path).inc()
+        return response
 
     if rate_limit:
 
@@ -97,6 +110,11 @@ def create_app(
     def health_check():
         """Return a simple heartbeat response for monitoring."""
         return {"status": "ok"}
+
+    @app.get("/metrics")
+    def metrics():
+        data = generate_latest(registry)
+        return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
     class Message(BaseModel):
         role: str

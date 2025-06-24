@@ -1,10 +1,9 @@
 from importlib import import_module
-import logging
+from loguru import logger
 from types import ModuleType
 from typing import Callable, List, Optional
 import inspect
 
-logger = logging.getLogger(__name__)
 
 
 class Plugin:

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: moogla
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: moogla
+  template:
+    metadata:
+      labels:
+        app: moogla
+    spec:
+      containers:
+        - name: moogla
+          image: moogla:latest
+          ports:
+            - containerPort: 11434
+          env:
+            - name: OPENAI_API_KEY
+              value: "<your-key>"
+          volumeMounts:
+            - name: models
+              mountPath: /models
+      volumes:
+        - name: models
+          emptyDir: {}

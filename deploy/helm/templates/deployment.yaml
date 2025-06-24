@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "moogla.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "moogla.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "moogla.name" . }}
+    spec:
+      containers:
+        - name: moogla
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 11434
