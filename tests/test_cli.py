@@ -26,6 +26,12 @@ def test_serve_with_plugin(monkeypatch):
 
     monkeypatch.setattr(server, 'uvicorn', types.SimpleNamespace(run=fake_run))
 
+    class DummyExecutor:
+        async def acomplete(self, prompt: str, max_tokens: int = 16) -> str:
+            return prompt[::-1]
+
+    monkeypatch.setattr(server, 'LLMExecutor', lambda *a, **kw: DummyExecutor())
+
     result = runner.invoke(app, ['serve', '--plugin', 'tests.dummy_plugin'])
     assert result.exit_code == 0
 

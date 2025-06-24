@@ -13,7 +13,15 @@ def test_invalid_plugin_raises_import_error():
         create_app(["nonexistent.module"])
 
 
-def test_preprocess_exception_results_in_500():
+class DummyExecutor:
+    def complete(self, prompt: str, max_tokens: int = 16) -> str:
+        return prompt[::-1]
+
+    async def acomplete(self, prompt: str, max_tokens: int = 16) -> str:
+        return prompt[::-1]
+
+
+def test_preprocess_exception_results_in_500(monkeypatch):
     mod = types.ModuleType('error_pre_plugin')
 
     def preprocess(text: str) -> str:
@@ -21,6 +29,7 @@ def test_preprocess_exception_results_in_500():
 
     mod.preprocess = preprocess
     sys.modules['error_pre_plugin'] = mod
+    monkeypatch.setattr("moogla.server.LLMExecutor", lambda *a, **kw: DummyExecutor())
     app = create_app(['error_pre_plugin'])
     client = TestClient(app, raise_server_exceptions=False)
     resp = client.post('/v1/completions', json={'prompt': 'abc'})
@@ -28,7 +37,7 @@ def test_preprocess_exception_results_in_500():
     sys.modules.pop('error_pre_plugin', None)
 
 
-def test_postprocess_exception_results_in_500():
+def test_postprocess_exception_results_in_500(monkeypatch):
     mod = types.ModuleType('error_post_plugin')
 
     def postprocess(text: str) -> str:
@@ -36,6 +45,7 @@ def test_postprocess_exception_results_in_500():
 
     mod.postprocess = postprocess
     sys.modules['error_post_plugin'] = mod
+    monkeypatch.setattr("moogla.server.LLMExecutor", lambda *a, **kw: DummyExecutor())
     app = create_app(['error_post_plugin'])
     client = TestClient(app, raise_server_exceptions=False)
     resp = client.post('/v1/completions', json={'prompt': 'abc'})

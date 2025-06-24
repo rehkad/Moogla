@@ -19,6 +19,7 @@ class DummyClient:
 def test_complete(monkeypatch):
     dummy = DummyClient()
     monkeypatch.setattr(openai, "OpenAI", lambda api_key=None, base_url=None: dummy)
+    monkeypatch.setattr(openai, "AsyncOpenAI", lambda api_key=None, base_url=None: dummy)
     executor = LLMExecutor(model="gpt-3.5-turbo")
     result = executor.complete("hello")
     assert result == "hi"

@@ -57,28 +57,28 @@ def create_app(
         prompt: str
         stream: bool = False
 
-    def apply_plugins(text: str) -> str:
+    async def apply_plugins(text: str) -> str:
         """Run text through plugin hooks and return the mock LLM output."""
         for plugin in plugins:
-            text = plugin.run_preprocess(text)
-        response = executor.complete(text)
+            text = await plugin.run_preprocess(text)
+        response = await executor.acomplete(text)
         for plugin in plugins:
-            response = plugin.run_postprocess(response)
+            response = await plugin.run_postprocess(response)
         return response
 
     @app.post("/v1/chat/completions")
-    def chat_completions(req: ChatRequest):
+    async def chat_completions(req: ChatRequest):
         """Handle Chat API calls and return a reversed assistant reply."""
         if not req.messages:
             return {"choices": []}
         content = req.messages[-1].content
-        reply = apply_plugins(content)
+        reply = await apply_plugins(content)
         return {"choices": [{"message": {"role": "assistant", "content": reply}}]}
 
     @app.post("/v1/completions")
-    def completions(req: CompletionRequest):
+    async def completions(req: CompletionRequest):
         """Return a completion for the given prompt using the mock backend."""
-        reply = apply_plugins(req.prompt)
+        reply = await apply_plugins(req.prompt)
         return {"choices": [{"text": reply}]}
 
     return app
