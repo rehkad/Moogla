@@ -101,6 +101,15 @@ During development you can run the server with auto reload using `uvicorn`:
 uvicorn moogla.server:create_app --reload
 ```
 
+## Running Tests
+
+Before running the test suite make sure the development extras are installed:
+
+```bash
+pip install -e .[dev]
+pytest
+```
+
 ### Web Interface
 
 To try the browser UI run the server and open the bundled web app:
