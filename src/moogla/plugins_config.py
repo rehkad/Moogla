@@ -2,12 +2,24 @@ import os
 import json
 import sqlite3
 from pathlib import Path
-from typing import List
+from typing import List, Optional
+
+PLUGIN_DB_PATH: Optional[Path] = None
+
+
+def set_plugin_db(path: Optional[str]) -> None:
+    """Override the location of the plugin database."""
+    global PLUGIN_DB_PATH
+    PLUGIN_DB_PATH = Path(path) if path else None
 
 
 def _get_path() -> Path:
     env = os.getenv("MOOGLA_PLUGIN_DB")
-    return Path(env) if env else Path.home() / ".cache" / "moogla" / "plugins.db"
+    if env:
+        return Path(env)
+    if PLUGIN_DB_PATH is not None:
+        return PLUGIN_DB_PATH
+    return Path.home() / ".cache" / "moogla" / "plugins.db"
 
 
 def _ensure_db(path: Path) -> sqlite3.Connection:

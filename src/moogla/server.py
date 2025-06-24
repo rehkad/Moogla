@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 from pathlib import Path
 from typing import List, Optional
 from contextlib import asynccontextmanager
@@ -21,12 +20,16 @@ from .auth import User
 
 from .executor import LLMExecutor
 from .plugins import load_plugins
+from .config import Settings
+from . import plugins_config
 
 logger = logging.getLogger(__name__)
 
 
 def create_app(
     plugin_names: Optional[List[str]] = None,
+    *,
+    settings: Optional[Settings] = None,
     model: Optional[str] = None,
     api_key: Optional[str] = None,
     api_base: Optional[str] = None,
@@ -34,28 +37,35 @@ def create_app(
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
     db_url: Optional[str] = None,
+    plugin_db: Optional[str] = None,
+    jwt_secret: Optional[str] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
-    if db_url:
-        os.environ["MOOGLA_PLUGIN_DB"] = db_url.replace("sqlite:///", "")
-    plugins = load_plugins(plugin_names)
-
-    model = model or os.getenv("MOOGLA_MODEL", "gpt-3.5-turbo")
-    api_key = api_key or os.getenv("OPENAI_API_KEY")
-    api_base = api_base or os.getenv("OPENAI_API_BASE")
-    server_api_key = server_api_key or os.getenv("MOOGLA_API_KEY")
+    settings = settings or Settings()
+    model = model or settings.model
+    api_key = api_key or settings.openai_api_key
+    api_base = api_base or settings.openai_api_base
+    server_api_key = server_api_key or settings.server_api_key
     if rate_limit is None:
-        env_limit = os.getenv("MOOGLA_RATE_LIMIT")
-        rate_limit = int(env_limit) if env_limit else None
-    redis_url = redis_url or os.getenv("MOOGLA_REDIS_URL", "redis://localhost:6379")
+        rate_limit = settings.rate_limit
+    redis_url = redis_url or settings.redis_url
+    db_url = db_url or settings.db_url
+    plugin_db = plugin_db or settings.plugin_db
+    secret_key = jwt_secret or settings.jwt_secret
+    algorithm = "HS256"
+
+    if plugin_db is None and db_url and db_url.startswith("sqlite:///"):
+        plugin_db = Path(db_url.replace("sqlite:///", ""))
+    if plugin_db:
+        plugins_config.set_plugin_db(str(plugin_db))
+
+    plugins = load_plugins(plugin_names)
 
     executor = LLMExecutor(model=model, api_key=api_key, api_base=api_base)
 
     engine = create_engine(db_url or "sqlite:///:memory:")
     SQLModel.metadata.create_all(engine)
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    secret_key = os.getenv("MOOGLA_JWT_SECRET", "secret")
-    algorithm = "HS256"
 
     dependencies = []
 
@@ -220,6 +230,8 @@ def start_server(
     rate_limit: Optional[int] = None,
     redis_url: Optional[str] = None,
     db_url: Optional[str] = None,
+    plugin_db: Optional[str] = None,
+    jwt_secret: Optional[str] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -231,5 +243,7 @@ def start_server(
         rate_limit=rate_limit,
         redis_url=redis_url,
         db_url=db_url,
+        plugin_db=plugin_db,
+        jwt_secret=jwt_secret,
     )
     uvicorn.run(app, host=host, port=port)

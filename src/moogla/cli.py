@@ -9,6 +9,7 @@ import typer
 
 from .server import start_server
 from . import plugins_config
+from .config import Settings
 
 app = typer.Typer(help="Moogla command line interface")
 plugin_app = typer.Typer(help="Manage plugins")
@@ -89,6 +90,20 @@ def serve(
         envvar="MOOGLA_DB_URL",
         show_default=False,
     ),
+    jwt_secret: str = typer.Option(
+        None,
+        "--jwt-secret",
+        help="Secret key for JWT tokens",
+        envvar="MOOGLA_JWT_SECRET",
+        show_default=False,
+    ),
+    plugin_db: str = typer.Option(
+        None,
+        "--plugin-db",
+        help="Path to plugin configuration DB",
+        envvar="MOOGLA_PLUGIN_DB",
+        show_default=False,
+    ),
 ):
     """Start the Moogla HTTP server.
 
@@ -109,10 +124,11 @@ def serve(
         rate_limit=rate_limit,
         redis_url=redis_url,
         db_url=db_url,
+        jwt_secret=jwt_secret,
+        plugin_db=plugin_db,
     )
 
 
-DEFAULT_DIR = Path.home() / ".cache" / "moogla" / "models"
 
 
 @app.command()
@@ -127,7 +143,8 @@ def pull(
     model: Identifier, path or URL of the model to fetch.
     dir: Target directory for the downloaded file.
     """
-    dest_dir = dir or Path(os.getenv("MOOGLA_MODEL_DIR", DEFAULT_DIR))
+    settings = Settings()
+    dest_dir = dir or settings.model_dir
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     parsed = urlparse(model)
