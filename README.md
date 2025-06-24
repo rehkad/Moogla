@@ -138,6 +138,15 @@ environment variables:
 docker-compose up
 ```
 
+## Documentation
+
+Full documentation is available on GitHub Pages and can be built locally with:
+
+```bash
+mkdocs serve
+```
+
+
 
 ## Contributing Guidelines
 
