@@ -99,6 +99,12 @@ When rate limiting is enabled, `MOOGLA_REDIS_URL` controls the Redis connection
 used for tracking request counts (default `redis://localhost:6379`). These values
 can also be passed to `create_app` or `moogla serve`.
 
+The API also exposes `/register` and `/login` endpoints for JWT authentication.
+Send a username and password to `/register` to create a user, then call `/login`
+to retrieve a token. Include this token when calling the LLM routes by adding an
+`Authorization: Bearer <token>` header. Authentication support relies on the
+`SQLModel`, `passlib` and `python-jose` packages.
+
 ## Running with Docker
 
 Build the image and start the server:
