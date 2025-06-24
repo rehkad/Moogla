@@ -3,9 +3,13 @@ const inputEl = document.getElementById('message');
 const loadingEl = document.getElementById('loading');
 const modelSelect = document.getElementById('model');
 const pluginContainer = document.getElementById('plugin-container');
+const fileInput = document.getElementById('file-input');
+const hintsContainer = document.getElementById('hints');
+const clearBtn = document.getElementById('clear-chat');
 
 const models = ['default', 'codellama:13b'];
 const plugins = ['tests.dummy_plugin'];
+const hints = ['Summarize the text', 'List key points', 'Explain it simply'];
 let history = [];
 
 function loadModels() {
@@ -41,6 +45,19 @@ function loadPlugins() {
     });
 }
 
+function loadHints() {
+    hints.forEach(h => {
+        const btn = document.createElement('button');
+        btn.textContent = h;
+        btn.className = 'text-xs bg-gray-200 px-2 py-1 rounded';
+        btn.addEventListener('click', () => {
+            inputEl.value = h;
+            inputEl.focus();
+        });
+        hintsContainer.appendChild(btn);
+    });
+}
+
 function loadHistory() {
     history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
     history.forEach(msg => addMessage(msg.role, msg.content));
@@ -58,8 +75,8 @@ function addMessage(role, text) {
     return span;
 }
 
-async function sendMessage() {
-    const text = inputEl.value.trim();
+async function sendMessage(textOverride) {
+    const text = (textOverride ?? inputEl.value).trim();
     if (!text) return;
     const userSpan = addMessage('user', text);
     history.push({role:'user', content:text});
@@ -122,6 +139,22 @@ inputEl.addEventListener('keypress', (e) => {
     }
 });
 
+fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const text = await file.text();
+    addMessage('user', `[Uploaded: ${file.name}]`);
+    await sendMessage(text);
+    fileInput.value = '';
+});
+
+clearBtn.addEventListener('click', () => {
+    history = [];
+    localStorage.removeItem('chatHistory');
+    chatEl.innerHTML = '';
+});
+
 loadModels();
 loadPlugins();
 loadHistory();
+loadHints();

@@ -2,6 +2,8 @@
 
 This folder contains a minimal web interface for interacting with a running
 Moogla server. The UI is styled using [Tailwind CSS](https://tailwindcss.com).
+It now includes optional file uploads and quick hint buttons for common
+prompts.
 
 A reference design is available in Figma. You can duplicate it from:
 
