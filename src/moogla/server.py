@@ -36,11 +36,13 @@ def create_app(
 
         @app.get("/")
         def root():
+            """Serve the bundled web UI index page."""
             index_path = static_dir / "index.html"
             return FileResponse(index_path)
 
     @app.get("/health")
     def health_check():
+        """Return a simple heartbeat response for monitoring."""
         return {"status": "ok"}
 
     class Message(BaseModel):
@@ -56,6 +58,7 @@ def create_app(
         stream: bool = False
 
     def apply_plugins(text: str) -> str:
+        """Run text through plugin hooks and return the mock LLM output."""
         for plugin in plugins:
             text = plugin.run_preprocess(text)
         response = executor.complete(text)
@@ -65,6 +68,7 @@ def create_app(
 
     @app.post("/v1/chat/completions")
     def chat_completions(req: ChatRequest):
+        """Handle Chat API calls and return a reversed assistant reply."""
         if not req.messages:
             return {"choices": []}
         content = req.messages[-1].content
@@ -73,6 +77,7 @@ def create_app(
 
     @app.post("/v1/completions")
     def completions(req: CompletionRequest):
+        """Return a completion for the given prompt using the mock backend."""
         reply = apply_plugins(req.prompt)
         return {"choices": [{"text": reply}]}
 
