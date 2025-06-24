@@ -16,6 +16,20 @@ plugin_app = typer.Typer(help="Manage plugins")
 app.add_typer(plugin_app, name="plugin")
 
 
+@plugin_app.callback()
+def plugin_callback(
+    config: str = typer.Option(
+        None,
+        "--config",
+        help="Path to plugin configuration file",
+        envvar="MOOGLA_PLUGIN_FILE",
+        show_default=False,
+    )
+) -> None:
+    if config:
+        plugins_config.set_plugin_file(config)
+
+
 @plugin_app.command("add")
 def plugin_add(name: str) -> None:
     """Add a plugin to the persistent store."""
@@ -97,11 +111,11 @@ def serve(
         envvar="MOOGLA_JWT_SECRET",
         show_default=False,
     ),
-    plugin_db: str = typer.Option(
+    plugin_file: str = typer.Option(
         None,
-        "--plugin-db",
-        help="Path to plugin configuration DB",
-        envvar="MOOGLA_PLUGIN_DB",
+        "--plugin-file",
+        help="Path to plugin configuration file",
+        envvar="MOOGLA_PLUGIN_FILE",
         show_default=False,
     ),
 ):
@@ -125,7 +139,7 @@ def serve(
         redis_url=redis_url,
         db_url=db_url,
         jwt_secret=jwt_secret,
-        plugin_db=plugin_db,
+        plugin_file=plugin_file,
     )
 
 

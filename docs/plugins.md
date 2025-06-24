@@ -22,10 +22,17 @@ Plugins can be loaded at startup using `--plugin`:
 moogla serve --plugin my_plugin
 ```
 
-You can also persist plugin names using the CLI:
+You can also persist plugin names using the CLI. Plugin information is stored in
+a YAML or JSON file (by default `~/.cache/moogla/plugins.yaml`).
 
 ```bash
 moogla plugin add my_plugin
 moogla plugin list
 moogla plugin remove my_plugin
+```
+
+The file location can be customised with `--config`:
+
+```bash
+moogla plugin --config /path/to/plugins.json add my_plugin
 ```

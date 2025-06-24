@@ -1,67 +1,79 @@
 import os
 import json
-import sqlite3
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
-PLUGIN_DB_PATH: Optional[Path] = None
+import yaml
+
+PLUGIN_FILE_PATH: Optional[Path] = None
 
 
-def set_plugin_db(path: Optional[str]) -> None:
-    """Override the location of the plugin database."""
-    global PLUGIN_DB_PATH
-    PLUGIN_DB_PATH = Path(path) if path else None
+def set_plugin_file(path: Optional[str]) -> None:
+    """Override the location of the plugin configuration file."""
+    global PLUGIN_FILE_PATH
+    PLUGIN_FILE_PATH = Path(path) if path else None
 
 
 def _get_path() -> Path:
-    env = os.getenv("MOOGLA_PLUGIN_DB")
+    env = os.getenv("MOOGLA_PLUGIN_FILE")
     if env:
         return Path(env)
-    if PLUGIN_DB_PATH is not None:
-        return PLUGIN_DB_PATH
-    return Path.home() / ".cache" / "moogla" / "plugins.db"
+    if PLUGIN_FILE_PATH is not None:
+        return PLUGIN_FILE_PATH
+    return Path.home() / ".cache" / "moogla" / "plugins.yaml"
 
 
-def _ensure_db(path: Path) -> sqlite3.Connection:
+def _load() -> Dict[str, Any]:
+    path = _get_path()
+    if not path.exists():
+        return {}
+    with open(path, "r") as f:
+        if path.suffix in {".yaml", ".yml"}:
+            return yaml.safe_load(f) or {}
+        return json.load(f)
+
+
+def _save(data: Dict[str, Any]) -> None:
+    path = _get_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT)"
-    )
-    return conn
-
-
-def _set_plugins(names: List[str], path: Path) -> None:
-    conn = _ensure_db(path)
-    try:
-        conn.execute(
-            "INSERT OR REPLACE INTO config(key, value) VALUES('plugins', ?)",
-            (json.dumps(names),),
-        )
-        conn.commit()
-    finally:
-        conn.close()
+    with open(path, "w") as f:
+        if path.suffix in {".yaml", ".yml"}:
+            yaml.safe_dump(data, f)
+        else:
+            json.dump(data, f, indent=2)
 
 
 def get_plugins() -> List[str]:
-    path = _get_path()
-    conn = _ensure_db(path)
-    try:
-        row = conn.execute("SELECT value FROM config WHERE key='plugins'").fetchone()
-        return json.loads(row[0]) if row else []
-    finally:
-        conn.close()
+    data = _load()
+    plugins = data.get("plugins")
+    if isinstance(plugins, list):
+        return plugins
+    if isinstance(data, list):
+        return data
+    return []
 
 
-def add_plugin(name: str) -> None:
-    names = get_plugins()
-    if name not in names:
-        names.append(name)
-        _set_plugins(names, _get_path())
+def add_plugin(name: str, **settings: Any) -> None:
+    data = _load()
+    plugins = data.get("plugins")
+    if plugins is None:
+        if isinstance(data, list):
+            plugins = data
+        else:
+            plugins = []
+        data["plugins"] = plugins
+    if name not in plugins:
+        plugins.append(name)
+    if settings:
+        data.setdefault("settings", {}).setdefault(name, {}).update(settings)
+    _save(data)
 
 
 def remove_plugin(name: str) -> None:
-    names = get_plugins()
-    if name in names:
-        names.remove(name)
-        _set_plugins(names, _get_path())
+    data = _load()
+    plugins = data.get("plugins")
+    if isinstance(plugins, list) and name in plugins:
+        plugins.remove(name)
+    if isinstance(data.get("settings"), dict):
+        data["settings"].pop(name, None)
+    _save(data)

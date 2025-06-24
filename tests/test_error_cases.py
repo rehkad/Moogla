@@ -1,6 +1,5 @@
 import asyncio
 import os
-import sqlite3
 import httpx
 import pytest
 
@@ -36,10 +35,14 @@ def test_invalid_db_url(monkeypatch):
         server.create_app(db_url="invalid://foo")
 
 
-def test_plugins_db_connection_error(monkeypatch):
-    def fail_connect(*args, **kwargs):
-        raise sqlite3.OperationalError("fail")
+def test_plugins_db_connection_error(tmp_path, monkeypatch):
+    path = tmp_path / "plugins.yaml"
+    path.write_text("plugins: []")
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(path))
 
-    monkeypatch.setattr(plugins_config.sqlite3, "connect", fail_connect)
-    with pytest.raises(sqlite3.OperationalError):
+    def fail_open(*args, **kwargs):
+        raise OSError("fail")
+
+    monkeypatch.setattr("builtins.open", fail_open)
+    with pytest.raises(OSError):
         plugins_config.get_plugins()

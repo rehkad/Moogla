@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     rate_limit: Optional[int] = Field(None, env="MOOGLA_RATE_LIMIT")
     redis_url: str = Field("redis://localhost:6379", env="MOOGLA_REDIS_URL")
     db_url: str = Field("sqlite:///:memory:", env="MOOGLA_DB_URL")
-    plugin_db: Optional[Path] = Field(None, env="MOOGLA_PLUGIN_DB")
+    plugin_file: Optional[Path] = Field(None, env="MOOGLA_PLUGIN_FILE")
     jwt_secret: str = Field("secret", env="MOOGLA_JWT_SECRET")
     model_dir: Path = Field(
         default_factory=lambda: Path.home() / ".cache" / "moogla" / "models",
