@@ -246,5 +246,23 @@ def models() -> None:
             typer.echo(n)
 
 
+@app.command()
+def remove(model: str) -> None:
+    """Delete a model file from the local cache."""
+    settings = Settings()
+    path = settings.model_dir / model
+
+    if not path.exists():
+        typer.echo(f"Model not found: {model}")
+        raise typer.Exit(code=1)
+
+    if not typer.confirm(f"Delete {path}?"):
+        typer.echo("Aborted")
+        raise typer.Exit(code=1)
+
+    path.unlink()
+    typer.echo(f"Deleted {path.name}")
+
+
 if __name__ == "__main__":
     app()

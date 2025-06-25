@@ -67,6 +67,12 @@ List downloaded files with:
 moogla models
 ```
 
+Remove a cached model with:
+
+```bash
+moogla remove model.bin
+```
+
 To use a Hugging Face model ID instead of a file path:
 
 ```bash
