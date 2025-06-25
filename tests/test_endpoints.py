@@ -163,6 +163,23 @@ async def test_option_forwarding(monkeypatch):
     assert dummy.last == {"max_tokens": 5, "temperature": 0.5, "top_p": 0.9}
 
 
+@pytest.mark.asyncio
+async def test_models_endpoint(monkeypatch, tmp_path):
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
+    models_dir = tmp_path / "models"
+    models_dir.mkdir()
+    (models_dir / "a.bin").write_text("hi")
+    (models_dir / "b.gguf").write_text("ok")
+    monkeypatch.setenv("MOOGLA_MODEL_DIR", str(models_dir))
+    app = create_app()
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.get("/models")
+    assert resp.status_code == 200
+    assert sorted(resp.json()["models"]) == ["a.bin", "b.gguf"]
+
+
 def test_root_endpoint():
     app = create_app()
     client = TestClient(app)
