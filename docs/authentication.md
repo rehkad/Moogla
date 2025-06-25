@@ -13,7 +13,9 @@ authentication. After registration, send the returned token in an
 
 Tokens are signed with `MOOGLA_JWT_SECRET`. If this variable is not set the
 server generates a random value on startup, meaning issued tokens become
-invalid after a restart. Specify a persistent secret in production.
+invalid after a restart. **Always set a persistent secret in production**,
+especially when `MOOGLA_API_KEY` is configured, otherwise the server will
+refuse to start.
 
 `MOOGLA_TOKEN_EXP_MINUTES` configures the token lifetime in minutes. The
 default is `30`.

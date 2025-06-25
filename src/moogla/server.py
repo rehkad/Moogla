@@ -8,9 +8,9 @@ from typing import List, Optional
 
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 from jose import JWTError, jwt
@@ -57,12 +57,18 @@ def create_app(
     plugin_file = plugin_file or settings.plugin_file
     secret_key = jwt_secret or settings.jwt_secret
     token_exp_minutes = (
-        token_exp_minutes if token_exp_minutes is not None else settings.token_exp_minutes
+        token_exp_minutes
+        if token_exp_minutes is not None
+        else settings.token_exp_minutes
     )
     cors_origins = cors_origins or settings.cors_origins
     algorithm = "HS256"
 
     if jwt_secret is None and "MOOGLA_JWT_SECRET" not in os.environ:
+        if server_api_key:
+            raise RuntimeError(
+                "MOOGLA_JWT_SECRET must be set when using server_api_key"
+            )
         logger.warning(
             "Generated ephemeral JWT secret. Set MOOGLA_JWT_SECRET to persist tokens."
         )
@@ -128,7 +134,11 @@ def create_app(
                 try:
                     await plugin.run_teardown()
                 except Exception as exc:  # pragma: no cover - pass through
-                    logger.error("Failed to teardown plugin '%s': %s", plugin.module.__name__, exc)
+                    logger.error(
+                        "Failed to teardown plugin '%s': %s",
+                        plugin.module.__name__,
+                        exc,
+                    )
 
     app = FastAPI(title="Moogla API", dependencies=dependencies, lifespan=lifespan)
     if cors_origins:
