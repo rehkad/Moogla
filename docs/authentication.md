@@ -27,3 +27,4 @@ valid API key or JWT token.
 
 Rate limiting can be enabled with `MOOGLA_RATE_LIMIT` and a Redis
 connection via `MOOGLA_REDIS_URL`.
+Set `MOOGLA_CORS_ORIGINS` to enable CORS for a comma separated list of origins.

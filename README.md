@@ -159,6 +159,8 @@ include an `X-API-Key` header matching the configured value. Optionally set
 When rate limiting is enabled, `MOOGLA_REDIS_URL` controls the Redis connection
 used for tracking request counts (default `redis://localhost:6379`). These values
 can also be passed to `create_app` or `moogla serve`.
+Set `MOOGLA_CORS_ORIGINS` to send CORS headers for a comma-separated list of
+allowed origins.
 
 The API also exposes `/register` and `/login` endpoints for JWT-based
 authentication. POST a username and password to `/register` to persist a user
