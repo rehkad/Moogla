@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 import logging
+import threading
 from importlib import import_module
 from types import ModuleType
 from typing import Callable, List, Optional
@@ -71,7 +72,29 @@ def load_plugins(names: Optional[List[str]]) -> List[Plugin]:
         if setup_async:
             try:
                 if inspect.iscoroutinefunction(setup_async):
-                    asyncio.run(setup_async(settings))
+                    try:
+                        asyncio.get_running_loop()
+                    except RuntimeError:
+                        asyncio.run(setup_async(settings))
+                    else:
+                        loop = asyncio.new_event_loop()
+                        exc: Optional[BaseException] = None
+
+                        def runner() -> None:
+                            nonlocal exc
+                            asyncio.set_event_loop(loop)
+                            try:
+                                loop.run_until_complete(setup_async(settings))
+                            except BaseException as e:
+                                exc = e
+                            finally:
+                                loop.close()
+
+                        thread = threading.Thread(target=runner)
+                        thread.start()
+                        thread.join()
+                        if exc:
+                            raise exc
                 else:
                     setup_async(settings)
             except Exception as exc:  # pragma: no cover - pass through
