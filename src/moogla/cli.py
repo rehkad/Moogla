@@ -246,6 +246,30 @@ def models() -> None:
             typer.echo(n)
 
 
+@app.command("reload-plugins")
+def reload_plugins(
+    url: str = typer.Option(
+        "http://localhost:11434",
+        "--url",
+        help="Base URL of the running server",
+        show_default=True,
+    )
+) -> None:
+    """Trigger plugin reload on the running server."""
+    target = url.rstrip("/") + "/reload-plugins"
+    try:
+        resp = httpx.post(target)
+        resp.raise_for_status()
+    except Exception as exc:
+        typer.echo(f"Failed to reload plugins: {exc}", err=True)
+        raise typer.Exit(code=1)
+    plugins = resp.json().get("loaded", [])
+    if plugins:
+        typer.echo("\n".join(plugins))
+    else:
+        typer.echo("Plugins reloaded")
+
+
 @app.command()
 def remove(model: str) -> None:
     """Delete a model file from the local cache."""
