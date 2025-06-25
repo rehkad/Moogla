@@ -28,6 +28,12 @@ class Plugin:
         self.postprocess_async: Optional[Callable[[str], str]] = getattr(
             module, "postprocess_async", None
         )
+        self.teardown: Optional[Callable[[], None]] = getattr(
+            module, "teardown", None
+        )
+        self.teardown_async: Optional[Callable[[], None]] = getattr(
+            module, "teardown_async", None
+        )
         self.order: int = getattr(module, "order", 0)
 
     async def run_preprocess(self, text: str) -> str:
@@ -45,6 +51,15 @@ class Plugin:
                 return await func(text)
             return func(text)
         return text
+
+    async def run_teardown(self) -> None:
+        """Invoke teardown hooks if defined."""
+        func = self.teardown_async or self.teardown
+        if func:
+            if inspect.iscoroutinefunction(func):
+                await func()
+            else:
+                func()
 
 
 def load_plugins(names: Optional[List[str]]) -> List[Plugin]:

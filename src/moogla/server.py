@@ -106,18 +106,26 @@ def create_app(
     if rate_limit:
         dependencies.append(Depends(RateLimiter(times=rate_limit, seconds=60)))
 
-    lifespan = None
-    if rate_limit:
-        @asynccontextmanager
-        async def lifespan(_: FastAPI):
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        redis_conn = None
+        if rate_limit:
             import redis.asyncio as redis
 
             redis_conn = redis.from_url(
                 redis_url, encoding="utf8", decode_responses=True
             )
             await FastAPILimiter.init(redis_conn)
+        try:
             yield
-            await FastAPILimiter.close()
+        finally:
+            if rate_limit:
+                await FastAPILimiter.close()
+            for plugin in plugins:
+                try:
+                    await plugin.run_teardown()
+                except Exception as exc:  # pragma: no cover - pass through
+                    logger.error("Failed to teardown plugin '%s': %s", plugin.module.__name__, exc)
 
     app = FastAPI(title="Moogla API", dependencies=dependencies, lifespan=lifespan)
     app.state.db_url = db_url
