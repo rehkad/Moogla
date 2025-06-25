@@ -201,6 +201,18 @@ Full documentation is available on GitHub Pages and can be built locally with:
 mkdocs serve
 ```
 
+## Packaging
+
+Create a standalone binary using `pyinstaller`:
+
+```bash
+pip install pyinstaller
+./scripts/build_package.sh dist/moogla.exe
+```
+
+Place the resulting file under `dist/` so `/download` can serve it.
+
+
 
 
 ## Contributing Guidelines

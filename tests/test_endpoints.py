@@ -186,3 +186,14 @@ def test_root_endpoint():
     resp = client.get("/")
     assert resp.status_code == 200
     assert "Moogla Chat" in resp.text
+
+
+def test_download_endpoint(tmp_path, monkeypatch):
+    pkg = tmp_path / "moogla.exe"
+    pkg.write_text("binary")
+    monkeypatch.setenv("MOOGLA_DIST_DIR", str(tmp_path))
+    app = create_app()
+    client = TestClient(app)
+    resp = client.get("/download")
+    assert resp.status_code == 200
+    assert resp.content == b"binary"

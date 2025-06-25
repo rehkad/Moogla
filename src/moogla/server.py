@@ -151,6 +151,20 @@ def create_app(
         names = sorted(p.name for p in model_dir_path.iterdir() if p.is_file())
         return {"models": names}
 
+    @app.get("/download")
+    def download_package():
+        """Return the packaged application archive if present."""
+        dist_dir = Path(
+            os.getenv(
+                "MOOGLA_DIST_DIR", str(Path(__file__).resolve().parent.parent / "dist")
+            )
+        )
+        for name in ("moogla.dmg", "moogla.exe"):
+            path = dist_dir / name
+            if path.is_file():
+                return FileResponse(path, filename=name)
+        raise HTTPException(status_code=404, detail="Package not found")
+
     class Credentials(BaseModel):
         username: str
         password: str
