@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Utilities for executing prompts against LLM providers."""
+
+from __future__ import annotations
 
 import asyncio
 import threading
