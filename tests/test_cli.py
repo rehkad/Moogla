@@ -99,6 +99,39 @@ def test_pull_downloads_to_custom_dir():
             assert (Path(target_dir) / "dummy.txt").exists()
 
 
+def test_pull_http_download(monkeypatch, tmp_path):
+    import contextlib
+    import httpx
+
+    data = b"hello"
+
+    def fake_stream(method, url, *a, **kw):
+        @contextlib.contextmanager
+        def cm():
+            class FakeResp:
+                headers = {"content-length": str(len(data))}
+
+                def raise_for_status(self):
+                    pass
+
+                def iter_bytes(self):
+                    yield from [data[:2], data[2:]]
+
+            yield FakeResp()
+
+        return cm()
+
+    monkeypatch.setattr(httpx, "stream", fake_stream)
+
+    result = runner.invoke(
+        app, ["pull", "http://example.com/x.bin", "--directory", str(tmp_path)]
+    )
+    assert result.exit_code == 0
+    out_file = tmp_path / "x.bin"
+    assert out_file.exists()
+    assert out_file.read_bytes() == data
+
+
 def test_pull_http_error(monkeypatch, tmp_path):
     import contextlib
 
