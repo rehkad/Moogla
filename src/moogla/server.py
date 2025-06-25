@@ -44,6 +44,7 @@ def create_app(
     """Build the FastAPI application."""
     settings = settings or Settings()
     model = model or settings.model
+    model_dir = settings.model_dir
     api_key = api_key or settings.openai_api_key
     api_base = api_base or settings.openai_api_base
     server_api_key = server_api_key or settings.server_api_key
@@ -125,6 +126,7 @@ def create_app(
     app.state.pwd_context = pwd_context
     app.state.jwt_secret = secret_key
     app.state.jwt_algorithm = algorithm
+    app.state.model_dir = model_dir
 
     static_dir = Path(__file__).resolve().parent / "web"
     if static_dir.exists():
@@ -140,6 +142,15 @@ def create_app(
     def health_check():
         """Return a simple heartbeat response for monitoring."""
         return {"status": "ok"}
+
+    @app.get("/models")
+    def list_models():
+        """Return available model filenames from the configured directory."""
+        model_dir_path: Path = app.state.model_dir
+        if not model_dir_path.is_dir():
+            return {"models": []}
+        names = sorted(p.name for p in model_dir_path.iterdir() if p.is_file())
+        return {"models": names}
 
     class Credentials(BaseModel):
         username: str
