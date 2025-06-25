@@ -1,5 +1,6 @@
 import importlib
 import os
+import asyncio
 
 import httpx
 import pytest
@@ -70,6 +71,7 @@ async def test_async_setup_inside_running_loop(tmp_path, monkeypatch):
     app = create_app()
 
     async_setup_plugin = importlib.import_module("tests.async_setup_plugin")
+    await asyncio.sleep(0.01)
     assert async_setup_plugin.configured == {"suffix": "@@"}
 
     async with httpx.AsyncClient(
