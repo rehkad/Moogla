@@ -66,8 +66,7 @@ def create_app(
     if db_url == "sqlite:///:memory:":
         logger.warning("Using in-memory SQLite database; user data will not persist.")
 
-    if plugin_file:
-        plugins_config.set_plugin_file(str(plugin_file))
+    plugins_config.set_plugin_file(str(plugin_file) if plugin_file else None)
 
     plugins = load_plugins(plugin_names)
 
