@@ -1,6 +1,7 @@
+import asyncio
+
 import httpx
 import pytest
-import asyncio
 
 from moogla import server
 from moogla.server import create_app
@@ -40,7 +41,7 @@ class DummyExecutor:
 @pytest.mark.asyncio
 async def test_authenticated_access(monkeypatch):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
-    app = create_app(server_api_key="secret")
+    app = create_app(server_api_key="secret", jwt_secret="jwt")
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://test"
     ) as client:
@@ -55,7 +56,7 @@ async def test_authenticated_access(monkeypatch):
 @pytest.mark.asyncio
 async def test_missing_api_key(monkeypatch):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
-    app = create_app(server_api_key="secret")
+    app = create_app(server_api_key="secret", jwt_secret="jwt")
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://test"
     ) as client:
@@ -67,7 +68,9 @@ async def test_missing_api_key(monkeypatch):
 async def test_jwt_auth(monkeypatch, tmp_path):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
     db = tmp_path / "db.db"
-    app = create_app(server_api_key="secret", db_url=f"sqlite:///{db}")
+    app = create_app(
+        server_api_key="secret", db_url=f"sqlite:///{db}", jwt_secret="jwt"
+    )
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://test"
     ) as client:
@@ -87,7 +90,9 @@ async def test_jwt_auth(monkeypatch, tmp_path):
 async def test_user_endpoints(monkeypatch, tmp_path):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
     db = tmp_path / "db.db"
-    app = create_app(server_api_key="secret", db_url=f"sqlite:///{db}")
+    app = create_app(
+        server_api_key="secret", db_url=f"sqlite:///{db}", jwt_secret="jwt"
+    )
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://test"
     ) as client:
@@ -115,7 +120,12 @@ async def test_user_endpoints(monkeypatch, tmp_path):
 async def test_token_expiration(monkeypatch, tmp_path):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
     db = tmp_path / "db.db"
-    app = create_app(server_api_key="secret", db_url=f"sqlite:///{db}", token_exp_minutes=0)
+    app = create_app(
+        server_api_key="secret",
+        db_url=f"sqlite:///{db}",
+        token_exp_minutes=0,
+        jwt_secret="jwt",
+    )
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://test"
     ) as client:
