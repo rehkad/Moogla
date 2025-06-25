@@ -179,12 +179,19 @@ docker build -t moogla .
 docker run -p 11434:11434 moogla
 ```
 
-You can also use `docker-compose` to mount a models directory and supply
-environment variables:
+You can also use `docker-compose` to start the service with a few sensible
+defaults. The compose file mounts a local `./models` directory into `/models`
+inside the container and exposes port `11434`. Environment variables can be
+used to configure remote providers and select the model to load. `MOOGLA_MODEL`
+defaults to `codellama:13b` in the compose file and can be changed to any
+local file or Hugging Face ID:
 
 ```bash
-docker-compose up
+OPENAI_API_KEY=sk-... MOOGLA_MODEL=codellama:13b docker-compose up
 ```
+
+The variables may also be placed in a `.env` file so they are picked up
+automatically when running `docker-compose`.
 
 ## Documentation
 
