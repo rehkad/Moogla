@@ -8,18 +8,24 @@ const hintsContainer = document.getElementById('hints');
 const clearBtn = document.getElementById('clear-chat');
 const toggleDarkBtn = document.getElementById('toggle-dark');
 
-const models = ['default', 'codellama:13b'];
 const plugins = ['tests.dummy_plugin'];
 const hints = ['Summarize the text', 'List key points', 'Explain it simply'];
 let history = [];
 
-function loadModels() {
-    models.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m;
-        opt.textContent = m;
-        modelSelect.appendChild(opt);
-    });
+async function loadModels() {
+    try {
+        const resp = await fetch('/models');
+        const data = await resp.json();
+        const list = data.models || data;
+        list.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            modelSelect.appendChild(opt);
+        });
+    } catch {
+        // ignore fetch errors and leave list empty
+    }
     const savedModel = localStorage.getItem('model');
     if (savedModel) modelSelect.value = savedModel;
     modelSelect.addEventListener('change', () => {
@@ -166,7 +172,7 @@ toggleDarkBtn.addEventListener('click', () => {
     localStorage.setItem('darkMode', enabled ? '1' : '0');
 });
 
-loadModels();
+loadModels().catch(() => {});
 loadPlugins();
 loadHistory();
 loadHints();
