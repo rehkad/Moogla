@@ -24,3 +24,5 @@ moogla --help
 By default `moogla pull` stores downloaded models in `~/.cache/moogla/models`.
 Set `MOOGLA_MODEL_DIR` to choose a different location. All commands that use
 local models will look for files in this directory.
+
+List cached models with `moogla models` and remove one using `moogla remove <name>`.

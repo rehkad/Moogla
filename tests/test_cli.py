@@ -141,3 +141,16 @@ def test_models_lists_files(tmp_path, monkeypatch):
     assert result.exit_code == 0
     assert "a.bin" in result.output
     assert "b.gguf" in result.output
+
+
+def test_remove_model(tmp_path, monkeypatch):
+    models_dir = tmp_path / ".cache" / "moogla" / "models"
+    models_dir.mkdir(parents=True)
+    path = models_dir / "a.bin"
+    path.write_text("hi")
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    result = runner.invoke(app, ["remove", "a.bin"], input="y\n")
+    assert result.exit_code == 0
+    assert not path.exists()
