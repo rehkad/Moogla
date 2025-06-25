@@ -27,6 +27,7 @@ a YAML or JSON file (by default `~/.cache/moogla/plugins.yaml`).
 
 ```bash
 moogla plugin add my_plugin
+moogla plugin add my_plugin --set greeting=hello --set retries=3
 moogla plugin list
 moogla plugin remove my_plugin
 ```
@@ -44,7 +45,12 @@ moogla plugin add my_plugin
 
 Additional options for a plugin can be stored alongside its name in the
 configuration file. When a plugin defines a `setup(settings: dict)` function,
-those settings are passed to it on load.
+those settings are passed to it on load. When adding a plugin via the CLI you
+can provide settings with the `--set` option:
+
+```bash
+moogla plugin add my_plugin --set greeting=hello --set retries=3
+```
 
 Example YAML structure:
 
