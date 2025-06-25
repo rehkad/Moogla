@@ -78,3 +78,15 @@ def preprocess(text: str) -> str:
 Settings are automatically provided when running `moogla serve` or creating the
 application programmatically.
 
+
+## Teardown Hooks
+
+Plugins can also clean up resources when the application shuts down. Define a
+`teardown` or `teardown_async` function in the plugin module and it will be
+called during application shutdown.
+
+```python
+# my_plugin.py
+async def teardown_async() -> None:
+    await connection.close()
+```
