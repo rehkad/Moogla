@@ -7,6 +7,7 @@ const fileInput = document.getElementById('file-input');
 const hintsContainer = document.getElementById('hints');
 const clearBtn = document.getElementById('clear-chat');
 const toggleDarkBtn = document.getElementById('toggle-dark');
+const downloadBtn = document.getElementById('download-app');
 
 const models = ['default', 'codellama:13b'];
 const plugins = ['tests.dummy_plugin'];
@@ -164,6 +165,10 @@ clearBtn.addEventListener('click', () => {
 toggleDarkBtn.addEventListener('click', () => {
     const enabled = document.documentElement.classList.toggle('dark');
     localStorage.setItem('darkMode', enabled ? '1' : '0');
+});
+
+downloadBtn.addEventListener('click', () => {
+    window.location.href = '/download-app';
 });
 
 loadModels();

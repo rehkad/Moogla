@@ -169,3 +169,10 @@ def test_root_endpoint():
     resp = client.get("/")
     assert resp.status_code == 200
     assert "Moogla Chat" in resp.text
+
+
+def test_download_endpoint_missing():
+    app = create_app()
+    client = TestClient(app)
+    resp = client.get("/download-app")
+    assert resp.status_code == 404

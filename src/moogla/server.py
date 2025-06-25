@@ -54,7 +54,9 @@ def create_app(
     plugin_file = plugin_file or settings.plugin_file
     secret_key = jwt_secret or settings.jwt_secret
     token_exp_minutes = (
-        token_exp_minutes if token_exp_minutes is not None else settings.token_exp_minutes
+        token_exp_minutes
+        if token_exp_minutes is not None
+        else settings.token_exp_minutes
     )
     algorithm = "HS256"
 
@@ -106,8 +108,8 @@ def create_app(
     if rate_limit:
         dependencies.append(Depends(RateLimiter(times=rate_limit, seconds=60)))
 
-    lifespan = None
     if rate_limit:
+
         @asynccontextmanager
         async def lifespan(_: FastAPI):
             import redis.asyncio as redis
@@ -119,7 +121,11 @@ def create_app(
             yield
             await FastAPILimiter.close()
 
-    app = FastAPI(title="Moogla API", dependencies=dependencies, lifespan=lifespan)
+        lifespan_ctx = lifespan
+    else:
+        lifespan_ctx = None
+
+    app = FastAPI(title="Moogla API", dependencies=dependencies, lifespan=lifespan_ctx)
     app.state.db_url = db_url
     app.state.engine = engine
     app.state.pwd_context = pwd_context
@@ -135,6 +141,18 @@ def create_app(
             """Serve the bundled web UI index page."""
             index_path = static_dir / "index.html"
             return FileResponse(index_path)
+
+        @app.get("/download-app")
+        def download_app():
+            """Return a packaged application if available."""
+            dist_dir = static_dir / "dist"
+            for name in ("moogla.dmg", "moogla.exe"):
+                file_path = dist_dir / name
+                if file_path.exists():
+                    return FileResponse(
+                        file_path, filename=name, media_type="application/octet-stream"
+                    )
+            raise HTTPException(status_code=404, detail="Package not found")
 
     @app.get("/health")
     def health_check():
