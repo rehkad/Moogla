@@ -13,8 +13,22 @@ def test_cli_plugin_management(tmp_path, monkeypatch):
     cfg = tmp_path / "plugins.yaml"
     monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
 
-    result = runner.invoke(app, ["plugin", "add", "tests.dummy_plugin"])
+    result = runner.invoke(
+        app,
+        [
+            "plugin",
+            "add",
+            "tests.dummy_plugin",
+            "--set",
+            "flag=yes",
+            "--set",
+            "number=1",
+        ],
+    )
     assert result.exit_code == 0
+
+    settings = plugins_config.get_plugin_settings("tests.dummy_plugin")
+    assert settings == {"flag": "yes", "number": "1"}
 
     result = runner.invoke(app, ["plugin", "list"])
     assert result.exit_code == 0

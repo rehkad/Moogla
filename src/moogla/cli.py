@@ -30,9 +30,25 @@ def plugin_callback(
 
 
 @plugin_app.command("add")
-def plugin_add(name: str) -> None:
+def plugin_add(
+    name: str,
+    set_option: List[str] = typer.Option(
+        None,
+        "--set",
+        "-s",
+        help="Plugin setting in key=value form",
+        metavar="KEY=VALUE",
+    ),
+) -> None:
     """Add a plugin to the persistent store."""
-    plugins_config.add_plugin(name)
+    settings = {}
+    if set_option:
+        for item in set_option:
+            if "=" not in item:
+                raise typer.BadParameter(f"Invalid setting '{item}'", param_hint="--set")
+            key, value = item.split("=", 1)
+            settings[key] = value
+    plugins_config.add_plugin(name, **settings)
     typer.echo(f"Added {name}")
 
 
