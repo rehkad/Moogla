@@ -16,6 +16,7 @@ modular, observable and developer friendly.
 - Built‑in dark‑mode web UI with file uploads and quick hints
 - Command to download models for offline use
 - Command to list available local models
+- Live plugin reloads via CLI command
 - Docker setup for containerised deployment
 - Example tests demonstrating extensibility
 
@@ -111,6 +112,15 @@ to a different location:
 ```bash
 MOOGLA_PLUGIN_FILE=/opt/plugins.json moogla plugin list
 ```
+
+Running servers can refresh plugins on demand with:
+
+```bash
+moogla reload-plugins
+```
+
+This calls the `/reload-plugins` endpoint and reloads modules using the
+current configuration.
 
 ### Async Limitations
 

@@ -1,10 +1,11 @@
 import types
 
 import openai
+import httpx
 from fastapi.testclient import TestClient
 from typer.testing import CliRunner
 
-from moogla import server
+from moogla import server, plugins_config
 from moogla.cli import app
 
 runner = CliRunner()
@@ -154,3 +155,42 @@ def test_remove_model(tmp_path, monkeypatch):
     result = runner.invoke(app, ["remove", "a.bin"], input="y\n")
     assert result.exit_code == 0
     assert not path.exists()
+
+
+def test_reload_plugins_command(monkeypatch, tmp_path):
+    cfg = tmp_path / "plugins.yaml"
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
+    plugins_config.add_plugin("tests.dummy_plugin")
+
+    class DummyExecutor:
+        async def acomplete(self, prompt: str, max_tokens: int | None = None, temperature: float | None = None, top_p: float | None = None) -> str:
+            return prompt[::-1]
+
+        async def astream(self, prompt: str, max_tokens: int | None = None, temperature: float | None = None, top_p: float | None = None):
+            text = prompt[::-1]
+            for i in range(0, len(text), 2):
+                yield text[i : i + 2]
+
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
+    app_instance = server.create_app()
+    client = TestClient(app_instance)
+
+    plugins_config.remove_plugin("tests.dummy_plugin")
+    plugins_config.add_plugin("tests.setup_plugin", suffix="!!")
+
+    def fake_post(url, *a, **kw):
+        assert url.endswith("/reload-plugins")
+        resp = client.post("/reload-plugins")
+        return types.SimpleNamespace(
+            status_code=resp.status_code,
+            json=resp.json,
+            raise_for_status=lambda: None,
+        )
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+
+    result = runner.invoke(app, ["reload-plugins"])
+    assert result.exit_code == 0
+    resp = client.post("/v1/completions", json={"prompt": "abc"})
+    assert resp.json()["choices"][0]["text"] == "cba!!"
+

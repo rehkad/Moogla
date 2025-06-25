@@ -90,3 +90,15 @@ called during application shutdown.
 async def teardown_async() -> None:
     await connection.close()
 ```
+
+## Live Reloads
+
+Running servers can refresh plugins without restarting. After editing the
+configuration or plugin files, call the `/reload-plugins` endpoint or use the
+CLI command:
+
+```bash
+moogla reload-plugins
+```
+
+The server will invoke `load_plugins` again and apply any new settings.

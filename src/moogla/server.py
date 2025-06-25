@@ -195,6 +195,7 @@ def create_app(
                 return FileResponse(path, filename=name)
         raise HTTPException(status_code=404, detail="Package not found")
 
+
     class Credentials(BaseModel):
         username: str
         password: str
@@ -278,6 +279,22 @@ def create_app(
         return response
 
     route_args = {"dependencies": [auth_dependency]} if auth_dependency else {}
+
+    @app.post("/reload-plugins", **route_args)
+    async def reload_plugins_endpoint():
+        """Reload plugins from the current configuration."""
+        nonlocal plugins
+        for plugin in plugins:
+            try:
+                await plugin.run_teardown()
+            except Exception as exc:  # pragma: no cover - pass through
+                logger.error(
+                    "Failed to teardown plugin '%s': %s",
+                    plugin.module.__name__,
+                    exc,
+                )
+        plugins = load_plugins(plugin_names)
+        return {"loaded": [p.module.__name__ for p in plugins]}
 
     class PasswordChange(BaseModel):
         username: str

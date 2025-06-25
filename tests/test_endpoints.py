@@ -5,7 +5,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from moogla import server
+from moogla import server, plugins_config
 from moogla.server import create_app
 
 os.environ.setdefault("OPENAI_API_KEY", "test-key")
@@ -197,3 +197,26 @@ def test_download_endpoint(tmp_path, monkeypatch):
     resp = client.get("/download")
     assert resp.status_code == 200
     assert resp.content == b"binary"
+
+
+@pytest.mark.asyncio
+async def test_reload_plugins_endpoint(monkeypatch, tmp_path):
+    cfg = tmp_path / "plugins.yaml"
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
+    plugins_config.add_plugin("tests.dummy_plugin")
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
+    app = create_app()
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.post("/v1/completions", json={"prompt": "x"})
+        assert resp.json()["choices"][0]["text"] == "!!X!!"
+
+        plugins_config.remove_plugin("tests.dummy_plugin")
+        plugins_config.add_plugin("tests.setup_plugin", suffix="??")
+        r = await client.post("/reload-plugins")
+        assert r.status_code == 200
+
+        resp = await client.post("/v1/completions", json={"prompt": "x"})
+        assert resp.json()["choices"][0]["text"] == "x??"
+
