@@ -10,6 +10,7 @@ import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 from jose import JWTError, jwt
@@ -40,6 +41,7 @@ def create_app(
     plugin_file: Optional[str] = None,
     jwt_secret: Optional[str] = None,
     token_exp_minutes: Optional[int] = None,
+    cors_origins: Optional[str] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
     settings = settings or Settings()
@@ -57,6 +59,7 @@ def create_app(
     token_exp_minutes = (
         token_exp_minutes if token_exp_minutes is not None else settings.token_exp_minutes
     )
+    cors_origins = cors_origins or settings.cors_origins
     algorithm = "HS256"
 
     if jwt_secret is None and "MOOGLA_JWT_SECRET" not in os.environ:
@@ -120,6 +123,15 @@ def create_app(
             await FastAPILimiter.close()
 
     app = FastAPI(title="Moogla API", dependencies=dependencies, lifespan=lifespan)
+    if cors_origins:
+        origins = [o.strip() for o in cors_origins.split(",") if o.strip()]
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
     app.state.db_url = db_url
     app.state.engine = engine
     app.state.pwd_context = pwd_context
@@ -367,6 +379,7 @@ def start_server(
     plugin_file: Optional[str] = None,
     jwt_secret: Optional[str] = None,
     token_exp_minutes: Optional[int] = None,
+    cors_origins: Optional[str] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -381,5 +394,6 @@ def start_server(
         plugin_file=plugin_file,
         jwt_secret=jwt_secret,
         token_exp_minutes=token_exp_minutes,
+        cors_origins=cors_origins,
     )
     uvicorn.run(app, host=host, port=port)
