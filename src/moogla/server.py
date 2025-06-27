@@ -42,9 +42,18 @@ def create_app(
     jwt_secret: Optional[str] = None,
     token_exp_minutes: Optional[int] = None,
     cors_origins: Optional[str] = None,
+    log_level: Optional[str] = None,
 ) -> FastAPI:
-    """Build the FastAPI application."""
+    """Build the FastAPI application.
+
+    Parameters
+    ----------
+    log_level: Optional logging level passed to :func:`logging.basicConfig`.
+    """
     settings = settings or Settings()
+    log_level = log_level or settings.log_level
+    logging.basicConfig(level=log_level)
+
     model = model or settings.model
     model_dir = settings.model_dir
     api_key = api_key or settings.openai_api_key

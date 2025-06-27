@@ -33,5 +33,6 @@ class Settings(BaseSettings):
     cors_origins: Optional[str] = Field(
         None, validation_alias="MOOGLA_CORS_ORIGINS"
     )
+    log_level: str = Field("INFO", validation_alias="MOOGLA_LOG_LEVEL")
 
     model_config = SettingsConfigDict(env_prefix="")
