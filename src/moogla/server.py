@@ -1,20 +1,28 @@
 import json
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional
 
 import uvicorn
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Histogram,
+    generate_latest,
+)
 from pydantic import BaseModel
 from sqlmodel import Session, SQLModel, create_engine, select
 
@@ -42,6 +50,7 @@ def create_app(
     jwt_secret: Optional[str] = None,
     token_exp_minutes: Optional[int] = None,
     cors_origins: Optional[str] = None,
+    enable_metrics: Optional[bool] = None,
 ) -> FastAPI:
     """Build the FastAPI application."""
     settings = settings or Settings()
@@ -62,6 +71,7 @@ def create_app(
         else settings.token_exp_minutes
     )
     cors_origins = cors_origins or settings.cors_origins
+    metrics_enabled = enable_metrics if enable_metrics is not None else settings.metrics
     algorithm = "HS256"
 
     if jwt_secret is None and "MOOGLA_JWT_SECRET" not in os.environ:
@@ -157,6 +167,36 @@ def create_app(
     app.state.jwt_algorithm = algorithm
     app.state.model_dir = model_dir
 
+    if metrics_enabled:
+        registry = CollectorRegistry()
+        request_count = Counter(
+            "http_requests_total",
+            "Total HTTP requests",
+            ["method", "endpoint", "http_status"],
+            registry=registry,
+        )
+        request_latency = Histogram(
+            "http_request_duration_seconds",
+            "HTTP request latency in seconds",
+            ["method", "endpoint"],
+            registry=registry,
+        )
+
+        @app.middleware("http")
+        async def record_metrics(request: Request, call_next):
+            start = time.perf_counter()
+            response = await call_next(request)
+            duration = time.perf_counter() - start
+            path = request.url.path
+            request_count.labels(request.method, path, str(response.status_code)).inc()
+            request_latency.labels(request.method, path).observe(duration)
+            return response
+
+        @app.get("/metrics")
+        def metrics():
+            data = generate_latest(registry)
+            return Response(data, media_type=CONTENT_TYPE_LATEST)
+
     static_dir = Path(__file__).resolve().parent / "web"
     if static_dir.exists():
         app.mount("/app", StaticFiles(directory=static_dir, html=True), name="static")
@@ -194,7 +234,6 @@ def create_app(
             if path.is_file():
                 return FileResponse(path, filename=name)
         raise HTTPException(status_code=404, detail="Package not found")
-
 
     class Credentials(BaseModel):
         username: str
@@ -415,6 +454,7 @@ def start_server(
     jwt_secret: Optional[str] = None,
     token_exp_minutes: Optional[int] = None,
     cors_origins: Optional[str] = None,
+    enable_metrics: Optional[bool] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -430,5 +470,6 @@ def start_server(
         jwt_secret=jwt_secret,
         token_exp_minutes=token_exp_minutes,
         cors_origins=cors_origins,
+        enable_metrics=enable_metrics,
     )
     uvicorn.run(app, host=host, port=port)

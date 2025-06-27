@@ -9,4 +9,5 @@ nav:
   - Local Models: local_models.md
   - Plugin Development: plugins.md
   - Authentication: authentication.md
+  - Metrics: metrics.md
   - Web UI: web_ui.md

@@ -13,6 +13,7 @@ modular, observable and developer friendly.
 - FastAPI server exposing OpenAI compatible endpoints
 - Optional API authentication via API key or JWT
 - Redis‑backed rate limiting
+- Optional Prometheus metrics endpoint
 - Built‑in dark‑mode web UI with file uploads and quick hints
 - Command to download models for offline use
 - Command to list available local models

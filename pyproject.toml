@@ -23,6 +23,7 @@ dependencies = [
     "python-jose>=3.3",
     "pyyaml>=6.0",
     "pydantic-settings>=2.0",
+    "prometheus_client>=0.19",
 ]
 
 [project.scripts]
