@@ -214,6 +214,32 @@ OPENAI_API_KEY=sk-... MOOGLA_MODEL=codellama:13b docker-compose up
 The variables may also be placed in a `.env` file so they are picked up
 automatically when running `docker-compose`.
 
+## Configuring Persistent Storage
+
+Authentication data is stored in an in-memory SQLite database by default, so
+all user records disappear when the server stops. Point `MOOGLA_DB_URL` at a
+real database to keep these records across restarts. Any SQLAlchemy compatible
+URL can be used:
+
+```bash
+MOOGLA_DB_URL=sqlite:///data/moogla.db moogla serve
+# or
+MOOGLA_DB_URL=postgresql://user:pass@localhost/moogla moogla serve
+```
+
+Plugin information lives in `~/.cache/moogla/plugins.yaml`. Set
+`MOOGLA_PLUGIN_FILE` (or use the `--config` flag) to choose a different
+location. When running in Docker this file should be placed on a mounted
+volume so plugin settings survive container restarts:
+
+```bash
+MOOGLA_PLUGIN_FILE=/data/plugins.yaml docker-compose up
+```
+
+Remember to back up your database and plugin configuration file. If the schema
+changes in future versions you may need to migrate existing data before
+upgrading.
+
 ## Documentation
 
 Full documentation is available on GitHub Pages and can be built locally with:
