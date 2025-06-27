@@ -196,6 +196,8 @@ Build the image and start the server:
 docker build -t moogla .
 docker run -p 11434:11434 moogla
 ```
+The Dockerfile now uses multi-stage builds so the final image only contains the
+installed package and its runtime dependencies.
 
 You can also use `docker-compose` to start the service with a few sensible
 defaults. The compose file mounts a local `./models` directory into `/models`
