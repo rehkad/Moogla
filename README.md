@@ -1,5 +1,7 @@
 # Moogla
 
+[![codecov](https://codecov.io/gh/example/Moogla/branch/main/graph/badge.svg)](https://codecov.io/gh/example/Moogla)
+
 Moogla is a self‑hosted LLM runtime and orchestration framework for power users.
 It combines local‑first execution with the flexibility required for
 production‑grade workflows.  The repository starts with a minimal project layout
