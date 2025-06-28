@@ -190,6 +190,17 @@ def test_remove_model(tmp_path, monkeypatch):
     assert not path.exists()
 
 
+def test_plugin_show_command(tmp_path, monkeypatch):
+    cfg = tmp_path / "plugins.yaml"
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
+    plugins_config.add_plugin("tests.dummy_plugin", flag="yes", number="1")
+
+    result = runner.invoke(app, ["plugin", "show", "tests.dummy_plugin"])
+    assert result.exit_code == 0
+    assert "flag=yes" in result.output
+    assert "number=1" in result.output
+
+
 def test_reload_plugins_command(monkeypatch, tmp_path):
     cfg = tmp_path / "plugins.yaml"
     monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))

@@ -94,3 +94,12 @@ def get_plugin_settings(name: str) -> Dict[str, Any]:
             return value
     return {}
 
+
+def get_all_plugin_settings() -> Dict[str, Dict[str, Any]]:
+    """Return stored settings for all plugins."""
+    data = _load()
+    settings = data.get("settings")
+    if isinstance(settings, dict):
+        return {k: v for k, v in settings.items() if isinstance(v, dict)}
+    return {}
+

@@ -70,6 +70,17 @@ def plugin_list() -> None:
             typer.echo(n)
 
 
+@plugin_app.command("show")
+def plugin_show(name: str) -> None:
+    """Show stored settings for a plugin."""
+    settings = plugins_config.get_plugin_settings(name)
+    if not settings:
+        typer.echo(f"No settings for {name}")
+    else:
+        for k, v in settings.items():
+            typer.echo(f"{k}={v}")
+
+
 @app.command()
 def serve(
     host: str = "0.0.0.0",
