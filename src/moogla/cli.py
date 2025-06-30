@@ -45,7 +45,9 @@ def plugin_add(
     if set_option:
         for item in set_option:
             if "=" not in item:
-                raise typer.BadParameter(f"Invalid setting '{item}'", param_hint="--set")
+                raise typer.BadParameter(
+                    f"Invalid setting '{item}'", param_hint="--set"
+                )
             key, value = item.split("=", 1)
             settings[key] = value
     plugins_config.add_plugin(name, **settings)
@@ -79,6 +81,13 @@ def plugin_show(name: str) -> None:
     else:
         for k, v in settings.items():
             typer.echo(f"{k}={v}")
+
+
+@plugin_app.command("clear")
+def plugin_clear() -> None:
+    """Remove all plugins from the store."""
+    plugins_config.clear_plugins()
+    typer.echo("Cleared plugin configuration")
 
 
 @app.command()
