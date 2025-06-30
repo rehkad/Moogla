@@ -1,7 +1,8 @@
+from pathlib import Path
+
+import pytest
 from fastapi.testclient import TestClient
 from typer.testing import CliRunner
-from pathlib import Path
-import pytest
 
 from moogla import plugins_config, server
 from moogla.cli import app
@@ -120,3 +121,12 @@ def test_permission_error_raises_runtime_error(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError):
         plugins_config.get_plugins()
 
+
+def test_cli_plugin_clear(tmp_path, monkeypatch):
+    cfg = tmp_path / "plugins.yaml"
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
+    plugins_config.add_plugin("tests.dummy_plugin")
+    result = runner.invoke(app, ["plugin", "clear"])
+    assert result.exit_code == 0
+    assert "Cleared" in result.output
+    assert plugins_config.get_plugins() == []

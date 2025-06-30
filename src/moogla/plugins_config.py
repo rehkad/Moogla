@@ -84,6 +84,12 @@ def remove_plugin(name: str) -> None:
         data["settings"].pop(name, None)
     _save(data)
 
+
+def clear_plugins() -> None:
+    """Remove all plugins and settings from the config file."""
+    _save({})
+
+
 def get_plugin_settings(name: str) -> Dict[str, Any]:
     """Return stored settings for the given plugin."""
     data = _load()
@@ -102,4 +108,3 @@ def get_all_plugin_settings() -> Dict[str, Dict[str, Any]]:
     if isinstance(settings, dict):
         return {k: v for k, v in settings.items() if isinstance(v, dict)}
     return {}
-
