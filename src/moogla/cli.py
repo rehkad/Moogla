@@ -5,10 +5,13 @@ from urllib.parse import urlparse
 
 import httpx
 import typer
+from dotenv import load_dotenv
 
 from . import plugins_config
 from .config import Settings
 from .server import start_server
+
+load_dotenv()
 
 app = typer.Typer(help="Moogla command line interface")
 plugin_app = typer.Typer(help="Manage plugins")
@@ -92,7 +95,7 @@ def plugin_clear() -> None:
 
 @app.command()
 def serve(
-    host: str = "0.0.0.0",
+    host: str = "127.0.0.1",
     port: int = 11434,
     plugin: List[str] = typer.Option(
         None, "--plugin", "-p", help="Plugin module to load", show_default=False

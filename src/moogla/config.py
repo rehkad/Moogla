@@ -30,9 +30,7 @@ class Settings(BaseSettings):
         default_factory=lambda: Path.home() / ".cache" / "moogla" / "models",
         validation_alias="MOOGLA_MODEL_DIR",
     )
-    cors_origins: Optional[str] = Field(
-        None, validation_alias="MOOGLA_CORS_ORIGINS"
-    )
+    cors_origins: Optional[str] = Field(None, validation_alias="MOOGLA_CORS_ORIGINS")
     log_level: str = Field("INFO", validation_alias="MOOGLA_LOG_LEVEL")
 
     model_config = SettingsConfigDict(env_prefix="")

@@ -1,11 +1,11 @@
 import types
 
-import openai
 import httpx
+import openai
 from fastapi.testclient import TestClient
 from typer.testing import CliRunner
 
-from moogla import server, plugins_config
+from moogla import plugins_config, server
 from moogla.cli import app
 
 runner = CliRunner()
@@ -101,6 +101,7 @@ def test_pull_downloads_to_custom_dir():
 
 def test_pull_http_download(monkeypatch, tmp_path):
     import contextlib
+
     import httpx
 
     data = b"hello"
@@ -207,10 +208,22 @@ def test_reload_plugins_command(monkeypatch, tmp_path):
     plugins_config.add_plugin("tests.dummy_plugin")
 
     class DummyExecutor:
-        async def acomplete(self, prompt: str, max_tokens: int | None = None, temperature: float | None = None, top_p: float | None = None) -> str:
+        async def acomplete(
+            self,
+            prompt: str,
+            max_tokens: int | None = None,
+            temperature: float | None = None,
+            top_p: float | None = None,
+        ) -> str:
             return prompt[::-1]
 
-        async def astream(self, prompt: str, max_tokens: int | None = None, temperature: float | None = None, top_p: float | None = None):
+        async def astream(
+            self,
+            prompt: str,
+            max_tokens: int | None = None,
+            temperature: float | None = None,
+            top_p: float | None = None,
+        ):
             text = prompt[::-1]
             for i in range(0, len(text), 2):
                 yield text[i : i + 2]
@@ -237,4 +250,3 @@ def test_reload_plugins_command(monkeypatch, tmp_path):
     assert result.exit_code == 0
     resp = client.post("/v1/completions", json={"prompt": "abc"})
     assert resp.json()["choices"][0]["text"] == "cba!!"
-

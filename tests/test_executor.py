@@ -1,8 +1,8 @@
+import asyncio
 import types
 
 import openai
 import pytest
-import asyncio
 
 from moogla.executor import LLMExecutor
 

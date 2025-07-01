@@ -27,9 +27,7 @@ class Plugin:
         self.postprocess_async: Optional[Callable[[str], str]] = getattr(
             module, "postprocess_async", None
         )
-        self.teardown: Optional[Callable[[], None]] = getattr(
-            module, "teardown", None
-        )
+        self.teardown: Optional[Callable[[], None]] = getattr(module, "teardown", None)
         self.teardown_async: Optional[Callable[[], None]] = getattr(
             module, "teardown_async", None
         )

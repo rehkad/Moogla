@@ -186,9 +186,7 @@ class LLMExecutor:
             return
 
         if self.async_llama:
-            result = await self.async_llama(
-                prompt, max_tokens=max_tokens, stream=True
-            )
+            result = await self.async_llama(prompt, max_tokens=max_tokens, stream=True)
             async for chunk in result:
                 text = chunk.get("choices", [{}])[0].get("text")
                 if text:
@@ -238,9 +236,7 @@ class LLMExecutor:
             return response.choices[0].message.content
 
         if self.async_llama:
-            result = await self.async_llama(
-                prompt, max_tokens=max_tokens
-            )
+            result = await self.async_llama(prompt, max_tokens=max_tokens)
             return result["choices"][0]["text"]
 
         # Some backends expose only synchronous APIs so local inference can

@@ -5,7 +5,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from moogla import server, plugins_config
+from moogla import plugins_config, server
 from moogla.server import create_app
 
 os.environ.setdefault("OPENAI_API_KEY", "test-key")
@@ -219,4 +219,3 @@ async def test_reload_plugins_endpoint(monkeypatch, tmp_path):
 
         resp = await client.post("/v1/completions", json={"prompt": "x"})
         assert resp.json()["choices"][0]["text"] == "x??"
-

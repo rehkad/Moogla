@@ -9,7 +9,9 @@ class DummyExecutor:
     def complete(self, prompt: str, max_tokens=None, temperature=None, top_p=None):
         return prompt
 
-    async def acomplete(self, prompt: str, max_tokens=None, temperature=None, top_p=None):
+    async def acomplete(
+        self, prompt: str, max_tokens=None, temperature=None, top_p=None
+    ):
         return prompt
 
     async def astream(self, prompt: str, max_tokens=None, temperature=None, top_p=None):
@@ -20,7 +22,9 @@ class DummyExecutor:
 async def test_cors_headers(monkeypatch):
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
     app = create_app(cors_origins="http://example.com")
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.get("/health", headers={"Origin": "http://example.com"})
     assert resp.status_code == 200
     assert resp.headers["access-control-allow-origin"] == "http://example.com"
