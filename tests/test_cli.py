@@ -74,6 +74,9 @@ def test_serve_with_plugin(monkeypatch):
             for i in range(0, len(text), 2):
                 yield text[i : i + 2]
 
+        async def aclose(self):
+            pass
+
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
 
     result = runner.invoke(app, ["serve", "--plugin", "tests.dummy_plugin"])
@@ -251,6 +254,9 @@ def test_reload_plugins_command(monkeypatch, tmp_path):
             text = prompt[::-1]
             for i in range(0, len(text), 2):
                 yield text[i : i + 2]
+
+        async def aclose(self):
+            pass
 
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
     app_instance = server.create_app()

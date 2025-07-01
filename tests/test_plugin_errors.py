@@ -45,6 +45,9 @@ class DummyExecutor:
         for i in range(0, len(text), 2):
             yield text[i : i + 2]
 
+    async def aclose(self):
+        pass
+
 
 def test_preprocess_exception_results_in_500(tmp_path, monkeypatch):
     mod = types.ModuleType("error_pre_plugin")

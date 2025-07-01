@@ -26,6 +26,9 @@ class DummyExecutor:
     ) -> str:
         return prompt[::-1]
 
+    async def aclose(self):
+        pass
+
 
 @pytest.mark.asyncio
 async def test_concurrent_requests(monkeypatch):
