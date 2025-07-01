@@ -24,11 +24,12 @@ def _get_path() -> Path:
 
 
 def _load() -> Dict[str, Any]:
+    """Return the current plugin configuration as a dictionary."""
     path = _get_path()
     if not path.exists():
         return {}
     try:
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             if path.suffix in {".yaml", ".yml"}:
                 return yaml.safe_load(f) or {}
             return json.load(f)
@@ -37,10 +38,11 @@ def _load() -> Dict[str, Any]:
 
 
 def _save(data: Dict[str, Any]) -> None:
+    """Persist the given plugin configuration to disk."""
     path = _get_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             if path.suffix in {".yaml", ".yml"}:
                 yaml.safe_dump(data, f)
             else:

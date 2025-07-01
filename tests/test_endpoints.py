@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 import httpx
 import pytest
@@ -219,3 +220,31 @@ async def test_reload_plugins_endpoint(monkeypatch, tmp_path):
 
         resp = await client.post("/v1/completions", json={"prompt": "x"})
         assert resp.json()["choices"][0]["text"] == "x??"
+
+
+@pytest.mark.asyncio
+async def test_reload_plugin_code_change(monkeypatch, tmp_path):
+    cfg = tmp_path / "plugins.yaml"
+    plugin_file = tmp_path / "dynamic_plugin.py"
+    plugin_file.write_text(
+        "def postprocess(text: str) -> str:\n    return text + '++'\n"
+    )
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
+    monkeypatch.syspath_prepend(tmp_path)
+    plugins_config.add_plugin("dynamic_plugin")
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
+    app = create_app()
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.post("/v1/completions", json={"prompt": "abc"})
+        assert resp.json()["choices"][0]["text"] == "cba++"
+
+        time.sleep(1.1)
+        plugin_file.write_text(
+            "def postprocess(text: str) -> str:\n    return text + '**'\n"
+        )
+        r = await client.post("/reload-plugins")
+        assert r.status_code == 200
+        resp = await client.post("/v1/completions", json={"prompt": "abc"})
+        assert resp.json()["choices"][0]["text"] == "cba**"

@@ -42,4 +42,5 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "moogla.web" = ["*"]
+"moogla" = ["py.typed"]
 
