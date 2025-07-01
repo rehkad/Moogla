@@ -75,6 +75,11 @@ Remove a cached model with:
 ```bash
 moogla remove model.bin
 ```
+Use `-y` to skip the confirmation prompt:
+
+```bash
+moogla remove model.bin -y
+```
 
 To use a Hugging Face model ID instead of a file path:
 
