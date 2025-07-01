@@ -13,11 +13,13 @@ import yaml
 class PluginStore:
     """Persist and retrieve plugin configuration from disk."""
 
+    DEFAULT_FILE = Path.home() / ".cache" / "moogla" / "plugins.yaml"
+
     def __init__(self, path: Optional[Path] = None) -> None:
-        self.path = path or Path.home() / ".cache" / "moogla" / "plugins.yaml"
+        self.path = path or self.DEFAULT_FILE
 
     def set_path(self, path: Optional[str]) -> None:
-        self.path = Path(path) if path else Path.home() / ".cache" / "moogla" / "plugins.yaml"
+        self.path = Path(path) if path else self.DEFAULT_FILE
 
     def _resolve_path(self) -> Path:
         env = os.getenv("MOOGLA_PLUGIN_FILE")

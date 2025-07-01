@@ -106,7 +106,9 @@ def load_plugins(
                 logger.error("Failed to setup plugin '%s': %s", name, exc)
                 raise
 
-        plugins.append(Plugin(module))
+        plugin = Plugin(module)
+        plugins.append(plugin)
+        logger.info("Loaded plugin '%s'", name)
 
     plugins.sort(key=lambda p: p.order)
     return plugins

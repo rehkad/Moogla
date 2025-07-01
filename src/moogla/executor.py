@@ -10,6 +10,11 @@ from typing import Optional
 
 import openai
 
+# Default generation parameters
+DEFAULT_MAX_TOKENS = 16
+DEFAULT_TEMPERATURE = 1.0
+DEFAULT_TOP_P = 1.0
+
 
 class LLMExecutor(AbstractContextManager, AbstractAsyncContextManager):
     """Simple wrapper around the OpenAI client with context manager support."""
@@ -67,11 +72,11 @@ class LLMExecutor(AbstractContextManager, AbstractAsyncContextManager):
     ) -> str:
         """Return a completion for the given prompt."""
         if max_tokens is None:
-            max_tokens = 16
+            max_tokens = DEFAULT_MAX_TOKENS
         if temperature is None:
-            temperature = 1.0
+            temperature = DEFAULT_TEMPERATURE
         if top_p is None:
-            top_p = 1.0
+            top_p = DEFAULT_TOP_P
         if self.client:
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -99,11 +104,11 @@ class LLMExecutor(AbstractContextManager, AbstractAsyncContextManager):
     ):
         """Yield completion tokens for the given prompt."""
         if max_tokens is None:
-            max_tokens = 16
+            max_tokens = DEFAULT_MAX_TOKENS
         if temperature is None:
-            temperature = 1.0
+            temperature = DEFAULT_TEMPERATURE
         if top_p is None:
-            top_p = 1.0
+            top_p = DEFAULT_TOP_P
         if self.client:
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -166,11 +171,11 @@ class LLMExecutor(AbstractContextManager, AbstractAsyncContextManager):
     ):
         """Asynchronously yield completion tokens for the prompt."""
         if max_tokens is None:
-            max_tokens = 16
+            max_tokens = DEFAULT_MAX_TOKENS
         if temperature is None:
-            temperature = 1.0
+            temperature = DEFAULT_TEMPERATURE
         if top_p is None:
-            top_p = 1.0
+            top_p = DEFAULT_TOP_P
         if self.async_client:
             response = await self.async_client.chat.completions.create(
                 model=self.model,
@@ -221,11 +226,11 @@ class LLMExecutor(AbstractContextManager, AbstractAsyncContextManager):
     ) -> str:
         """Asynchronously return a completion for the given prompt."""
         if max_tokens is None:
-            max_tokens = 16
+            max_tokens = DEFAULT_MAX_TOKENS
         if temperature is None:
-            temperature = 1.0
+            temperature = DEFAULT_TEMPERATURE
         if top_p is None:
-            top_p = 1.0
+            top_p = DEFAULT_TOP_P
         if self.async_client:
             response = await self.async_client.chat.completions.create(
                 model=self.model,
