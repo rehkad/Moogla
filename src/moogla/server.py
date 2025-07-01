@@ -301,7 +301,7 @@ def create_app(
                     plugin.module.__name__,
                     exc,
                 )
-        plugins = load_plugins(plugin_names)
+        plugins = load_plugins(plugin_names, reload_modules=True)
         return {"loaded": [p.module.__name__ for p in plugins]}
 
     class PasswordChange(BaseModel):

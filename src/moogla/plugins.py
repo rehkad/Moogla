@@ -1,7 +1,8 @@
 import asyncio
 import inspect
 import logging
-from importlib import import_module
+import sys
+from importlib import import_module, invalidate_caches, reload
 from types import ModuleType
 from typing import Callable, List, Optional
 
@@ -59,14 +60,23 @@ class Plugin:
                 func()
 
 
-def load_plugins(names: Optional[List[str]]) -> List[Plugin]:
+def load_plugins(
+    names: Optional[List[str]], *, reload_modules: bool = False
+) -> List[Plugin]:
     """Import and initialize plugins from module names or configured store."""
     if not names:
         names = plugins_config.get_plugins()
     plugins: List[Plugin] = []
     for name in names or []:
         try:
-            module = import_module(name)
+            if reload_modules:
+                invalidate_caches()
+                if name in sys.modules:
+                    module = reload(sys.modules[name])
+                else:
+                    module = import_module(name)
+            else:
+                module = import_module(name)
         except Exception as exc:
             logger.error("Failed to import plugin '%s': %s", name, exc)
             raise ImportError(f"Cannot import plugin '{name}'") from exc
