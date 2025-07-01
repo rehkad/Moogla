@@ -217,6 +217,12 @@ def pull(
         "-d",
         help="Directory to save downloaded models",
     ),
+    timeout: int = typer.Option(
+        30,
+        "--timeout",
+        help="HTTP download timeout in seconds",
+        show_default=True,
+    ),
 ):
     """Download a model into the local cache.
 
@@ -224,6 +230,7 @@ def pull(
     ----------
     model: Identifier, path or URL of the model to fetch.
     directory: Target directory for the downloaded file.
+    timeout: Maximum time in seconds to wait for HTTP downloads.
     """
     settings = Settings()
     dest_dir = directory or settings.model_dir
@@ -240,7 +247,7 @@ def pull(
     if parsed.scheme in {"http", "https", "file"}:
         url = model
         try:
-            with httpx.stream("GET", url) as resp:
+            with httpx.stream("GET", url, timeout=timeout) as resp:
                 resp.raise_for_status()
                 total = int(resp.headers.get("content-length", 0))
                 with (
