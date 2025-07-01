@@ -17,6 +17,9 @@ class DummyExecutor:
     async def astream(self, prompt: str, max_tokens=None, temperature=None, top_p=None):
         yield prompt
 
+    async def aclose(self):
+        pass
+
 
 @pytest.mark.asyncio
 async def test_cors_headers(monkeypatch):

@@ -31,6 +31,9 @@ class DummyExecutor:
         for i in range(0, len(text), 2):
             yield text[i : i + 2]
 
+    async def aclose(self):
+        pass
+
 
 @pytest.mark.asyncio
 async def test_teardown_async_called(monkeypatch):

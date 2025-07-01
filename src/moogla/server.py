@@ -139,6 +139,7 @@ def create_app(
         finally:
             if rate_limit:
                 await FastAPILimiter.close()
+            await executor.aclose()
             for plugin in plugins:
                 try:
                     await plugin.run_teardown()

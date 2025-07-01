@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import asyncio
 import threading
+from contextlib import AbstractAsyncContextManager, AbstractContextManager
 from pathlib import Path
 from typing import Optional
 
 import openai
 
 
-class LLMExecutor:
-    """Simple wrapper around the OpenAI client."""
+class LLMExecutor(AbstractContextManager, AbstractAsyncContextManager):
+    """Simple wrapper around the OpenAI client with context manager support."""
 
     def __init__(
         self, model: str, api_key: Optional[str] = None, api_base: Optional[str] = None
@@ -251,3 +252,33 @@ class LLMExecutor:
             )
 
         raise RuntimeError("No LLM backend configured")
+
+    def close(self) -> None:
+        """Release any resources held by the executor."""
+        if self.client:
+            try:
+                self.client.close()
+            except Exception:  # pragma: no cover - depends on backend implementation
+                pass
+        if self.generator:
+            close_fn = getattr(self.generator, "close", None)
+            if callable(close_fn):
+                close_fn()
+
+    async def aclose(self) -> None:
+        """Asynchronously release executor resources."""
+        if self.async_client:
+            try:
+                await self.async_client.close()
+            except Exception:  # pragma: no cover - depends on backend implementation
+                pass
+        await asyncio.to_thread(self.close)
+
+    # Context manager support -------------------------------------------------
+    def __exit__(self, exc_type, exc, tb) -> None:  # pragma: no cover - thin wrapper
+        self.close()
+
+    async def __aexit__(
+        self, exc_type, exc, tb
+    ) -> None:  # pragma: no cover - thin wrapper
+        await self.aclose()

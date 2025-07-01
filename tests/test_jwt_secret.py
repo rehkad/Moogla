@@ -14,6 +14,9 @@ class DummyExecutor:
     async def astream(self, *a, **kw):
         yield ""
 
+    async def aclose(self):
+        pass
+
 
 @pytest.mark.asyncio
 async def test_missing_jwt_secret(monkeypatch):

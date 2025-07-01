@@ -42,6 +42,9 @@ class DummyExecutor:
         for i in range(0, len(text), 2):
             yield text[i : i + 2]
 
+    async def aclose(self):
+        pass
+
 
 def test_async_setup_called(tmp_path, monkeypatch):
     cfg = tmp_path / "plugins.yaml"
