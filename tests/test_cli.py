@@ -88,6 +88,34 @@ def test_serve_with_plugin(monkeypatch):
     assert resp.json()["choices"][0]["text"] == "!!CBA!!"
 
 
+def test_serve_option_forwarding(monkeypatch):
+    captured = {}
+
+    def fake_start_server(**kwargs):
+        captured.update(kwargs)
+
+    from moogla import cli as cli_module
+
+    monkeypatch.setattr(cli_module, "start_server", fake_start_server)
+
+    result = runner.invoke(
+        app,
+        [
+            "serve",
+            "--log-level",
+            "DEBUG",
+            "--cors-origins",
+            "http://a.com",
+            "--token-exp-minutes",
+            "60",
+        ],
+    )
+    assert result.exit_code == 0
+    assert captured["log_level"] == "DEBUG"
+    assert captured["cors_origins"] == "http://a.com"
+    assert captured["token_exp_minutes"] == 60
+
+
 def test_pull_downloads_to_custom_dir():
     import tempfile
     from pathlib import Path

@@ -19,6 +19,8 @@ refuse to start.
 
 `MOOGLA_TOKEN_EXP_MINUTES` configures the token lifetime in minutes. The
 default is `30`.
+The same value can be set on the command line with `--token-exp-minutes` when
+running `moogla serve`.
 
 User records are kept in an in-memory SQLite database by default. Set
 `MOOGLA_DB_URL` to use a durable database so accounts survive server restarts.

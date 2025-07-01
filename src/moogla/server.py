@@ -424,6 +424,7 @@ def start_server(
     jwt_secret: Optional[str] = None,
     token_exp_minutes: Optional[int] = None,
     cors_origins: Optional[str] = None,
+    log_level: Optional[str] = None,
 ) -> None:
     """Run the HTTP server."""
     app = create_app(
@@ -439,5 +440,6 @@ def start_server(
         jwt_secret=jwt_secret,
         token_exp_minutes=token_exp_minutes,
         cors_origins=cors_origins,
+        log_level=log_level,
     )
     uvicorn.run(app, host=host, port=port)
