@@ -156,6 +156,27 @@ def serve(
         envvar="MOOGLA_PLUGIN_FILE",
         show_default=False,
     ),
+    log_level: str = typer.Option(
+        None,
+        "--log-level",
+        help="Logging level for the server",
+        envvar="MOOGLA_LOG_LEVEL",
+        show_default=False,
+    ),
+    cors_origins: str = typer.Option(
+        None,
+        "--cors-origins",
+        help="Comma separated list of allowed CORS origins",
+        envvar="MOOGLA_CORS_ORIGINS",
+        show_default=False,
+    ),
+    token_exp_minutes: int = typer.Option(
+        None,
+        "--token-exp-minutes",
+        help="JWT token expiry in minutes",
+        envvar="MOOGLA_TOKEN_EXP_MINUTES",
+        show_default=False,
+    ),
 ):
     """Start the Moogla HTTP server.
 
@@ -181,6 +202,9 @@ def serve(
         db_url=db_url,
         jwt_secret=jwt_secret,
         plugin_file=plugin_file,
+        log_level=log_level,
+        cors_origins=cors_origins,
+        token_exp_minutes=token_exp_minutes,
     )
 
 

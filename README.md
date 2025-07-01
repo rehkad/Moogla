@@ -185,6 +185,8 @@ can also be passed to `create_app` or `moogla serve`.
 Set `MOOGLA_CORS_ORIGINS` to send CORS headers for a comma-separated list of
 allowed origins.
 Set `MOOGLA_LOG_LEVEL` to control application logging (default `INFO`).
+These values can also be provided via the `--cors-origins`, `--log-level` and
+`--token-exp-minutes` options when running `moogla serve`.
 
 The API also exposes `/register` and `/login` endpoints for JWT-based
 authentication. POST a username and password to `/register` to persist a user
