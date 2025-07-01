@@ -1,6 +1,6 @@
+import asyncio
 import importlib
 import os
-import asyncio
 
 import httpx
 import pytest

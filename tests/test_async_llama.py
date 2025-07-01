@@ -1,9 +1,11 @@
 import asyncio
 import sys
 import types
+
 import pytest
 
 from moogla.executor import LLMExecutor
+
 
 class DummyAsyncLlama:
     def __init__(self, model_path: str) -> None:
@@ -11,15 +13,20 @@ class DummyAsyncLlama:
 
     async def __call__(self, prompt: str, max_tokens: int = 16, stream: bool = False):
         if stream:
+
             async def gen():
                 for ch in prompt[::-1]:
                     yield {"choices": [{"text": ch}]}
+
             return gen()
         return {"choices": [{"text": prompt[::-1]}]}
 
+
 @pytest.mark.asyncio
 async def test_async_llama_usage(monkeypatch):
-    dummy_module = types.SimpleNamespace(AsyncLlama=DummyAsyncLlama, Llama=DummyAsyncLlama)
+    dummy_module = types.SimpleNamespace(
+        AsyncLlama=DummyAsyncLlama, Llama=DummyAsyncLlama
+    )
     monkeypatch.setitem(sys.modules, "llama_cpp", dummy_module)
 
     called = False

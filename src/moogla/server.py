@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -204,7 +204,6 @@ def create_app(
                 return FileResponse(path, filename=name)
         raise HTTPException(status_code=404, detail="Package not found")
 
-
     class Credentials(BaseModel):
         username: str
         password: str
@@ -236,7 +235,7 @@ def create_app(
                 raise HTTPException(status_code=401, detail="Invalid credentials")
         payload = {
             "sub": str(user.id),
-            "exp": datetime.utcnow() + timedelta(minutes=token_exp_minutes),
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=token_exp_minutes),
         }
         token = jwt.encode(payload, secret_key, algorithm=algorithm)
         return {"access_token": token, "token_type": "bearer"}
@@ -410,7 +409,7 @@ def create_app(
 
 
 def start_server(
-    host: str = "0.0.0.0",
+    host: str = "127.0.0.1",
     port: int = 11434,
     plugin_names: Optional[List[str]] = None,
     model: Optional[str] = None,

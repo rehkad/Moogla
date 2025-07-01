@@ -9,4 +9,3 @@ def setup(settings: dict) -> None:
 def postprocess(text: str) -> str:
     suffix = configured.get("suffix", "")
     return f"{text}{suffix}"
-
