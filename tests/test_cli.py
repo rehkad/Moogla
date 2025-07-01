@@ -191,6 +191,30 @@ def test_remove_model(tmp_path, monkeypatch):
     assert not path.exists()
 
 
+def test_remove_model_yes_flag(tmp_path, monkeypatch):
+    models_dir = tmp_path / ".cache" / "moogla" / "models"
+    models_dir.mkdir(parents=True)
+    path = models_dir / "b.bin"
+    path.write_text("hi")
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    result = runner.invoke(app, ["remove", "b.bin", "--yes"])
+    assert result.exit_code == 0
+    assert not path.exists()
+
+
+def test_remove_model_missing(tmp_path, monkeypatch):
+    models_dir = tmp_path / ".cache" / "moogla" / "models"
+    models_dir.mkdir(parents=True)
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    result = runner.invoke(app, ["remove", "c.bin", "--yes"])
+    assert result.exit_code == 1
+    assert "Model not found" in result.output
+
+
 def test_plugin_show_command(tmp_path, monkeypatch):
     cfg = tmp_path / "plugins.yaml"
     monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))

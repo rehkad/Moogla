@@ -294,7 +294,15 @@ def reload_plugins(
 
 
 @app.command()
-def remove(model: str) -> None:
+def remove(
+    model: str,
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Delete without confirmation",
+    ),
+) -> None:
     """Delete a model file from the local cache."""
     settings = Settings()
     path = settings.model_dir / model
@@ -303,7 +311,7 @@ def remove(model: str) -> None:
         typer.echo(f"Model not found: {model}")
         raise typer.Exit(code=1)
 
-    if not typer.confirm(f"Delete {path}?"):
+    if not yes and not typer.confirm(f"Delete {path}?"):
         typer.echo("Aborted")
         raise typer.Exit(code=1)
 
