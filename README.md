@@ -13,6 +13,7 @@ modular, observable and developer friendly.
 - Local or remote model execution with streaming responses
 - Expandable plugin system with async hooks and CLI management
 - FastAPI server exposing OpenAI compatible endpoints
+- Small /version endpoint for health checks and client introspection
 - Optional API authentication via API key or JWT
 - Redis‑backed rate limiting
 - Built‑in dark‑mode web UI with file uploads and quick hints
