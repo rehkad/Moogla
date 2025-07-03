@@ -186,8 +186,10 @@ can also be passed to `create_app` or `moogla serve`.
 Set `MOOGLA_CORS_ORIGINS` to send CORS headers for a comma-separated list of
 allowed origins.
 Set `MOOGLA_LOG_LEVEL` to control application logging (default `INFO`).
+Set `MOOGLA_HOST` and `MOOGLA_PORT` to change the bind address
+(defaults `127.0.0.1:11434`).
 These values can also be provided via the `--cors-origins`, `--log-level` and
-`--token-exp-minutes` options when running `moogla serve`.
+`--host`, `--port` and `--token-exp-minutes` options when running `moogla serve`.
 
 The API also exposes `/register` and `/login` endpoints for JWT-based
 authentication. POST a username and password to `/register` to persist a user
