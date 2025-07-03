@@ -42,13 +42,17 @@ class PluginStore:
     def save(self, data: Dict[str, Any]) -> None:
         path = self._resolve_path()
         path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(path.suffix + ".tmp")
         try:
-            with open(path, "w", encoding="utf-8") as f:
+            with open(tmp, "w", encoding="utf-8") as f:
                 if path.suffix in {".yaml", ".yml"}:
                     yaml.safe_dump(data, f)
                 else:
-                    json.dump(data, f, indent=2)
+                    json.dump(data, f, indent=2, sort_keys=True)
+            os.replace(tmp, path)
         except OSError as e:  # pragma: no cover - filesystem errors
+            if tmp.exists():
+                tmp.unlink(missing_ok=True)
             raise RuntimeError(f"Failed to save plugin config: {e}") from e
 
     def get_plugins(self) -> List[str]:

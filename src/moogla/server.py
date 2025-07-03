@@ -185,6 +185,13 @@ def create_app(
         """Return a simple heartbeat response for monitoring."""
         return {"status": "ok"}
 
+    @app.get("/version")
+    def version_info():
+        """Return the running package version."""
+        from . import __version__
+
+        return {"version": __version__}
+
     @app.get("/models")
     def list_models():
         """Return available model filenames from the configured directory."""
