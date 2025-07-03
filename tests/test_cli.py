@@ -5,7 +5,7 @@ import openai
 from fastapi.testclient import TestClient
 from typer.testing import CliRunner
 
-from moogla import plugins_config, server
+from moogla import __version__, plugins_config, server
 from moogla.cli import app
 
 runner = CliRunner()
@@ -308,3 +308,31 @@ def test_reload_plugins_command(monkeypatch, tmp_path):
     assert result.exit_code == 0
     resp = client.post("/v1/completions", json={"prompt": "abc"})
     assert resp.json()["choices"][0]["text"] == "cba!!"
+
+
+def test_version_option():
+    result = runner.invoke(app, ["version"])
+    assert result.exit_code == 0
+    assert __version__ in result.output
+
+
+def test_serve_invalid_db_url(monkeypatch):
+    class DummyClient:
+        chat = types.SimpleNamespace(completions=None)
+
+    monkeypatch.setattr(openai, "OpenAI", lambda *a, **kw: DummyClient())
+    monkeypatch.setattr(openai, "AsyncOpenAI", lambda *a, **kw: DummyClient())
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
+    result = runner.invoke(app, ["serve", "--db-url", "noscheme"])
+    assert result.exit_code != 0
+
+
+def test_serve_invalid_redis_url(monkeypatch):
+    class DummyClient:
+        chat = types.SimpleNamespace(completions=None)
+
+    monkeypatch.setattr(openai, "OpenAI", lambda *a, **kw: DummyClient())
+    monkeypatch.setattr(openai, "AsyncOpenAI", lambda *a, **kw: DummyClient())
+    monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
+    result = runner.invoke(app, ["serve", "--redis-url", "noscheme"])
+    assert result.exit_code != 0

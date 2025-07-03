@@ -197,7 +197,9 @@ record, then call `/login` with the same credentials to obtain a token.
 Include this token in an `Authorization: Bearer <token>` header when calling the
 LLM routes. Tokens are signed with a random secret and stored in an in-memory
 SQLite database by default. Set `MOOGLA_JWT_SECRET` and `MOOGLA_DB_URL` to keep
-credentials valid across restarts. `MOOGLA_TOKEN_EXP_MINUTES` controls how long
+credentials valid across restarts. When the secret is not configured a new
+value is generated on every start, so previously issued tokens will no longer
+work after a restart. `MOOGLA_TOKEN_EXP_MINUTES` controls how long
 issued tokens remain valid (default `30`). Authentication support relies on the
 `SQLModel`, `passlib` and `python-jose` packages.
 
