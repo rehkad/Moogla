@@ -3,33 +3,48 @@ import inspect
 import logging
 import sys
 from importlib import import_module, invalidate_caches, reload
-from types import ModuleType
-from typing import Callable, List, Optional
+from typing import (Awaitable, Callable, List, Optional, Protocol, cast,
+                    runtime_checkable)
 
 from . import plugins_config
 
 logger = logging.getLogger(__name__)
 
 
+@runtime_checkable
+class PluginModule(Protocol):
+    """Typed interface for plugin modules."""
+
+    preprocess: Callable[[str], str] | None
+    preprocess_async: Callable[[str], Awaitable[str]] | None
+    postprocess: Callable[[str], str] | None
+    postprocess_async: Callable[[str], Awaitable[str]] | None
+    teardown: Callable[[], None] | None
+    teardown_async: Callable[[], Awaitable[None]] | None
+    setup: Callable[[dict], None] | None
+    setup_async: Callable[[dict], Awaitable[None]] | None
+    order: int
+
+
 class Plugin:
     """Simple wrapper around a plugin module."""
 
-    def __init__(self, module: ModuleType) -> None:
+    def __init__(self, module: PluginModule) -> None:
         self.module = module
-        self.preprocess: Optional[Callable[[str], str]] = getattr(
+        self.preprocess: Callable[[str], str] | None = getattr(
             module, "preprocess", None
         )
-        self.preprocess_async: Optional[Callable[[str], str]] = getattr(
+        self.preprocess_async: Callable[[str], Awaitable[str]] | None = getattr(
             module, "preprocess_async", None
         )
-        self.postprocess: Optional[Callable[[str], str]] = getattr(
+        self.postprocess: Callable[[str], str] | None = getattr(
             module, "postprocess", None
         )
-        self.postprocess_async: Optional[Callable[[str], str]] = getattr(
+        self.postprocess_async: Callable[[str], Awaitable[str]] | None = getattr(
             module, "postprocess_async", None
         )
-        self.teardown: Optional[Callable[[], None]] = getattr(module, "teardown", None)
-        self.teardown_async: Optional[Callable[[], None]] = getattr(
+        self.teardown: Callable[[], None] | None = getattr(module, "teardown", None)
+        self.teardown_async: Callable[[], Awaitable[None]] | None = getattr(
             module, "teardown_async", None
         )
         self.order: int = getattr(module, "order", 0)
@@ -72,11 +87,11 @@ def load_plugins(
             if reload_modules:
                 invalidate_caches()
                 if name in sys.modules:
-                    module = reload(sys.modules[name])
+                    module = cast(PluginModule, reload(sys.modules[name]))
                 else:
-                    module = import_module(name)
+                    module = cast(PluginModule, import_module(name))
             else:
-                module = import_module(name)
+                module = cast(PluginModule, import_module(name))
         except Exception as exc:
             logger.error("Failed to import plugin '%s': %s", name, exc)
             raise ImportError(f"Cannot import plugin '{name}'") from exc
