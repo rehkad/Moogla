@@ -8,7 +8,7 @@ import httpx
 import typer
 from dotenv import load_dotenv
 
-from . import plugins_config
+from . import __version__, plugins_config
 from .config import Settings
 from .server import start_server
 
@@ -94,6 +94,12 @@ def plugin_clear() -> None:
     """Remove all plugins from the store."""
     plugins_config.clear_plugins()
     typer.echo("Cleared plugin configuration")
+
+
+@app.command()
+def version() -> None:
+    """Show the installed Moogla version."""
+    typer.echo(__version__)
 
 
 @app.command()

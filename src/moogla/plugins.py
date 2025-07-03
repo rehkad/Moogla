@@ -93,7 +93,7 @@ def load_plugins(
             else:
                 module = cast(PluginModule, import_module(name))
         except Exception as exc:
-            logger.error("Failed to import plugin '%s': %s", name, exc)
+            logger.exception("Failed to import plugin '%s'", name)
             raise ImportError(f"Cannot import plugin '{name}'") from exc
 
         settings = plugins_config.get_plugin_settings(name)
