@@ -8,6 +8,16 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
+from pydantic import BaseModel, ConfigDict, ValidationError
+
+
+class PluginConfigModel(BaseModel):
+    """Schema for plugin configuration files."""
+
+    plugins: List[str] = []
+    settings: Dict[str, Dict[str, Any]] = {}
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class PluginStore:
@@ -34,12 +44,18 @@ class PluginStore:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 if path.suffix in {".yaml", ".yml"}:
-                    return yaml.safe_load(f) or {}
-                return json.load(f)
+                    raw = yaml.safe_load(f) or {}
+                else:
+                    raw = json.load(f)
+            if isinstance(raw, list):
+                raw = {"plugins": raw}
+            data = PluginConfigModel.model_validate(raw)
+            return data.model_dump()
         except (
             OSError,
             json.JSONDecodeError,
             yaml.YAMLError,
+            ValidationError,
         ) as e:  # pragma: no cover - file errors
             raise RuntimeError(f"Failed to load plugin config: {e}") from e
 

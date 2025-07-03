@@ -108,6 +108,15 @@ def test_corrupted_file_raises_runtime_error(tmp_path, monkeypatch):
         plugins_config.get_plugins()
 
 
+def test_invalid_structure_raises_runtime_error(tmp_path, monkeypatch):
+    cfg = tmp_path / "plugins.yaml"
+    cfg.write_text("plugins: foo")
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
+
+    with pytest.raises(RuntimeError):
+        plugins_config.get_plugins()
+
+
 def test_permission_error_raises_runtime_error(tmp_path, monkeypatch):
     cfg = tmp_path / "plugins.yaml"
     cfg.write_text("plugins: []")
