@@ -28,6 +28,11 @@ from .plugins import load_plugins
 logger = logging.getLogger(__name__)
 
 
+def configure_logging(level: str) -> None:
+    """Configure application logging."""
+    logging.basicConfig(level=level)
+
+
 def create_app(
     plugin_names: Optional[List[str]] = None,
     *,
@@ -49,11 +54,11 @@ def create_app(
 
     Parameters
     ----------
-    log_level: Optional logging level passed to :func:`logging.basicConfig`.
+    log_level: Optional logging level passed to :func:`configure_logging`.
     """
     settings = settings or Settings()
     log_level = log_level or settings.log_level
-    logging.basicConfig(level=log_level)
+    configure_logging(log_level)
 
     model = model or settings.model
     model_dir = settings.model_dir
@@ -127,32 +132,26 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        redis_conn = None
-        if rate_limit:
-            import redis.asyncio as redis
+        from contextlib import AsyncExitStack
 
-            redis_conn = redis.from_url(
-                redis_url, encoding="utf8", decode_responses=True
-            )
-            await FastAPILimiter.init(redis_conn)
-        try:
-            yield
-        finally:
+        async with AsyncExitStack() as stack:
+            redis_conn = None
             if rate_limit:
-                await FastAPILimiter.close()
-                if redis_conn is not None:
-                    await redis_conn.close()
-            await executor.aclose()
-            engine.dispose()
+                import redis.asyncio as redis
+
+                redis_conn = redis.from_url(
+                    redis_url, encoding="utf8", decode_responses=True
+                )
+                await FastAPILimiter.init(redis_conn)
+                stack.push_async_callback(FastAPILimiter.close)
+                stack.push_async_callback(redis_conn.close)
+
+            stack.push_async_callback(executor.aclose)
+            stack.callback(engine.dispose)
             for plugin in plugins:
-                try:
-                    await plugin.run_teardown()
-                except Exception as exc:  # pragma: no cover - pass through
-                    logger.error(
-                        "Failed to teardown plugin '%s': %s",
-                        plugin.module.__name__,
-                        exc,
-                    )
+                stack.push_async_callback(plugin.run_teardown)
+
+            yield
 
     app = FastAPI(title="Moogla API", dependencies=dependencies, lifespan=lifespan)
     if cors_origins:
