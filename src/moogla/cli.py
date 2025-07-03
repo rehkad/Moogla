@@ -95,8 +95,20 @@ def plugin_clear() -> None:
 
 @app.command()
 def serve(
-    host: str = "127.0.0.1",
-    port: int = 11434,
+    host: str = typer.Option(
+        "127.0.0.1",
+        "--host",
+        help="IP or hostname to bind",
+        envvar="MOOGLA_HOST",
+        show_default=True,
+    ),
+    port: int = typer.Option(
+        11434,
+        "--port",
+        help="TCP port to listen on",
+        envvar="MOOGLA_PORT",
+        show_default=True,
+    ),
     plugin: List[str] = typer.Option(
         None, "--plugin", "-p", help="Plugin module to load", show_default=False
     ),

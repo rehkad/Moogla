@@ -36,7 +36,11 @@ class PluginStore:
                 if path.suffix in {".yaml", ".yml"}:
                     return yaml.safe_load(f) or {}
                 return json.load(f)
-        except (OSError, json.JSONDecodeError, yaml.YAMLError) as e:  # pragma: no cover - file errors
+        except (
+            OSError,
+            json.JSONDecodeError,
+            yaml.YAMLError,
+        ) as e:  # pragma: no cover - file errors
             raise RuntimeError(f"Failed to load plugin config: {e}") from e
 
     def save(self, data: Dict[str, Any]) -> None:
@@ -138,4 +142,3 @@ def get_plugin_settings(name: str) -> Dict[str, Any]:
 
 def get_all_plugin_settings() -> Dict[str, Dict[str, Any]]:
     return _default.get_all_plugin_settings()
-
