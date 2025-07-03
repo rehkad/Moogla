@@ -257,6 +257,14 @@ def test_plugin_show_command(tmp_path, monkeypatch):
     assert "number=1" in result.output
 
 
+def test_plugin_path_command(tmp_path, monkeypatch):
+    cfg = tmp_path / "plugins.yaml"
+    monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
+    result = runner.invoke(app, ["plugin", "path"])
+    assert result.exit_code == 0
+    assert cfg.name in result.output
+
+
 def test_reload_plugins_command(monkeypatch, tmp_path):
     cfg = tmp_path / "plugins.yaml"
     monkeypatch.setenv("MOOGLA_PLUGIN_FILE", str(cfg))
@@ -314,6 +322,13 @@ def test_version_option():
     result = runner.invoke(app, ["version"])
     assert result.exit_code == 0
     assert __version__ in result.output
+
+
+def test_config_command(monkeypatch):
+    monkeypatch.setenv("MOOGLA_MODEL", "dummy")
+    result = runner.invoke(app, ["config"])
+    assert result.exit_code == 0
+    assert '"model": "dummy"' in result.output
 
 
 def test_serve_invalid_db_url(monkeypatch):

@@ -29,8 +29,15 @@ logger = logging.getLogger(__name__)
 
 
 def configure_logging(level: str) -> None:
-    """Configure application logging."""
-    logging.basicConfig(level=level)
+    """Configure application logging with a consistent format."""
+    root = logging.getLogger()
+    if not root.handlers:
+        logging.basicConfig(
+            level=level,
+            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        )
+    else:
+        root.setLevel(level)
 
 
 def create_app(
