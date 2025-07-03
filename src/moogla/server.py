@@ -139,7 +139,10 @@ def create_app(
         finally:
             if rate_limit:
                 await FastAPILimiter.close()
+                if redis_conn is not None:
+                    await redis_conn.close()
             await executor.aclose()
+            engine.dispose()
             for plugin in plugins:
                 try:
                     await plugin.run_teardown()
