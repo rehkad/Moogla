@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import threading
 from contextlib import AbstractAsyncContextManager, AbstractContextManager
 from pathlib import Path
 from typing import Optional
 
 import openai
+
+logger = logging.getLogger(__name__)
 
 # Default generation parameters
 DEFAULT_MAX_TOKENS = 16
@@ -263,8 +266,8 @@ class LLMExecutor(AbstractContextManager, AbstractAsyncContextManager):
         if self.client:
             try:
                 self.client.close()
-            except Exception:  # pragma: no cover - depends on backend implementation
-                pass
+            except Exception as exc:  # pragma: no cover - depends on backend implementation
+                logger.debug("LLM client close failed: %s", exc)
         if self.generator:
             close_fn = getattr(self.generator, "close", None)
             if callable(close_fn):
@@ -275,8 +278,8 @@ class LLMExecutor(AbstractContextManager, AbstractAsyncContextManager):
         if self.async_client:
             try:
                 await self.async_client.close()
-            except Exception:  # pragma: no cover - depends on backend implementation
-                pass
+            except Exception as exc:  # pragma: no cover - depends on backend implementation
+                logger.debug("Async LLM client close failed: %s", exc)
         await asyncio.to_thread(self.close)
 
     # Context manager support -------------------------------------------------
