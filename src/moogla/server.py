@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
+from enum import Enum
 
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -251,8 +252,15 @@ def create_app(
         token = jwt.encode(payload, secret_key, algorithm=algorithm)
         return {"access_token": token, "token_type": "bearer"}
 
+    class Role(str, Enum):
+        """Allowed chat roles for messages."""
+
+        SYSTEM = "system"
+        USER = "user"
+        ASSISTANT = "assistant"
+
     class Message(BaseModel):
-        role: str
+        role: Role
         content: str
 
     class ChatRequest(BaseModel):
