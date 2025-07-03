@@ -96,10 +96,23 @@ def plugin_clear() -> None:
     typer.echo("Cleared plugin configuration")
 
 
+@plugin_app.command("path")
+def plugin_path() -> None:
+    """Show the path to the plugin configuration file."""
+    typer.echo(str(plugins_config.get_path()))
+
+
 @app.command()
 def version() -> None:
     """Show the installed Moogla version."""
     typer.echo(__version__)
+
+
+@app.command()
+def config() -> None:
+    """Show the effective configuration values."""
+    settings = Settings()
+    typer.echo(settings.model_dump_json(indent=2))
 
 
 @app.command()

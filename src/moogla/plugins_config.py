@@ -31,6 +31,10 @@ class PluginStore:
     def set_path(self, path: Optional[str]) -> None:
         self.path = Path(path) if path else self.DEFAULT_FILE
 
+    def get_path(self) -> Path:
+        """Return the configured plugin file path."""
+        return self._resolve_path()
+
     def _resolve_path(self) -> Path:
         env = os.getenv("MOOGLA_PLUGIN_FILE")
         if env:
@@ -158,3 +162,8 @@ def get_plugin_settings(name: str) -> Dict[str, Any]:
 
 def get_all_plugin_settings() -> Dict[str, Dict[str, Any]]:
     return _default.get_all_plugin_settings()
+
+
+def get_path() -> Path:
+    """Return the active plugin configuration file path."""
+    return _default.get_path()
