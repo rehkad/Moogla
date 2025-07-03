@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import List
@@ -10,6 +11,8 @@ from dotenv import load_dotenv
 from . import plugins_config
 from .config import Settings
 from .server import start_server
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -270,10 +273,11 @@ def pull(
                         f.write(chunk)
                         if total:
                             bar.update(len(chunk))
-        except Exception as e:
+        except Exception as exc:
             if dest.exists():
                 dest.unlink()
-            typer.echo(f"Failed to download {url}: {e}", err=True)
+            logger.error("Failed to download %s: %s", url, exc)
+            typer.echo(f"Failed to download {url}: {exc}", err=True)
             raise typer.Exit(code=1)
     elif Path(model).is_file():
         size = os.path.getsize(model)
