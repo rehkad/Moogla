@@ -130,6 +130,21 @@ def test_pull_downloads_to_custom_dir():
             assert (Path(target_dir) / "dummy.txt").exists()
 
 
+def test_pull_force_overwrites(tmp_path):
+    src = tmp_path / "source.txt"
+    src.write_text("new")
+    dest_dir = tmp_path / "dest"
+    dest_dir.mkdir()
+    dest = dest_dir / "source.txt"
+    dest.write_text("old")
+
+    result = runner.invoke(
+        app, ["pull", str(src), "--directory", str(dest_dir), "--force"]
+    )
+    assert result.exit_code == 0
+    assert dest.read_text() == "new"
+
+
 def test_pull_http_download(monkeypatch, tmp_path):
     import contextlib
 
@@ -332,6 +347,29 @@ def test_config_command(monkeypatch):
 
 
 def test_serve_invalid_db_url(monkeypatch):
+    class DummyExecutor:
+        async def acomplete(
+            self,
+            prompt: str,
+            max_tokens: int | None = None,
+            temperature: float | None = None,
+            top_p: float | None = None,
+        ) -> str:
+            return ""
+
+        async def astream(
+            self,
+            prompt: str,
+            max_tokens: int | None = None,
+            temperature: float | None = None,
+            top_p: float | None = None,
+        ):
+            if False:
+                yield  # pragma: no cover - generator placeholder
+
+        async def aclose(self):
+            pass
+
     class DummyClient:
         chat = types.SimpleNamespace(completions=None)
 
@@ -343,11 +381,36 @@ def test_serve_invalid_db_url(monkeypatch):
 
 
 def test_serve_invalid_redis_url(monkeypatch):
+    class DummyExecutor:
+        async def acomplete(
+            self,
+            prompt: str,
+            max_tokens: int | None = None,
+            temperature: float | None = None,
+            top_p: float | None = None,
+        ) -> str:
+            return ""
+
+        async def astream(
+            self,
+            prompt: str,
+            max_tokens: int | None = None,
+            temperature: float | None = None,
+            top_p: float | None = None,
+        ):
+            if False:
+                yield  # pragma: no cover - generator placeholder
+
+        async def aclose(self):
+            pass
+
     class DummyClient:
         chat = types.SimpleNamespace(completions=None)
 
     monkeypatch.setattr(openai, "OpenAI", lambda *a, **kw: DummyClient())
     monkeypatch.setattr(openai, "AsyncOpenAI", lambda *a, **kw: DummyClient())
     monkeypatch.setattr(server, "LLMExecutor", lambda *a, **kw: DummyExecutor())
-    result = runner.invoke(app, ["serve", "--redis-url", "noscheme"])
+    result = runner.invoke(
+        app, ["serve", "--rate-limit", "1", "--redis-url", "noscheme"]
+    )
     assert result.exit_code != 0
