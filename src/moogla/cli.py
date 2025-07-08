@@ -251,6 +251,13 @@ def pull(
         "-d",
         help="Directory to save downloaded models",
     ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite existing files",
+        show_default=False,
+    ),
     timeout: int = typer.Option(
         30,
         "--timeout",
@@ -265,6 +272,7 @@ def pull(
     model: Identifier, path or URL of the model to fetch.
     directory: Target directory for the downloaded file.
     timeout: Maximum time in seconds to wait for HTTP downloads.
+    force: Overwrite the destination file if it already exists.
     """
     settings = Settings()
     dest_dir = directory or settings.model_dir
@@ -275,8 +283,10 @@ def pull(
     dest = dest_dir / filename
 
     if dest.exists():
-        typer.echo(f"Using cached model at {dest}")
-        return
+        if not force:
+            typer.echo(f"Using cached model at {dest}")
+            return
+        dest.unlink()
 
     if parsed.scheme in {"http", "https", "file"}:
         url = model
